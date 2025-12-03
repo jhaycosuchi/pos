@@ -1,0 +1,231 @@
+ESTRUCTURA COMPLETA - GOOGLE SHEETS - MAZUHI SUSHI
+===============================================
+
+Fecha: 27 de noviembre 2025
+Proyecto: Mazuhi Sushi Website
+Versión: 1.0.0
+
+===============================================
+🔐 CREDENCIALES REQUERIDAS
+===============================================
+
+GOOGLE_SERVICE_ACCOUNT_EMAIL=mazuhisushi@rich-surge-477017-s3.iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDIh9gbqjzxdm4s\nSX0sex1sDYTvdT6qfuba+hGBfS2JEiTLoJNzfZggm2ZM5/xdzSKjfxNB851g5y9k\na6UOZd/y0+GsMgeEvlWRe6YhaDjLNZVfOla3860IvrAPivtfuRup2JtPe12JZlu8\nDINrmKot02L03950j5RJek6nmA8vcN5TNWOYVindJMPdFiQ4oRq5I1uJ5zfTKCDp\nb++1p8tvFjpLe0V1IROZjQNBpscmhteEDs2Z5T9uBqiRYmxema/Sp6X/zPcaSJvr\ni36CM+c2nzPk2A65zNMZoOxCo7oWzCEP0eAlRLk9Wib/ZCakRNx2U7pFJjJ3MuRW\nQ9XvFVxBAgMBAAECggEASwf1FujcM7bN41k98kpAiIEId/aFE5M2+sEtkqdNRefZ\nh61V7pUUOkMbBHSay1gpeUZfZMJr5OmrpGXYlOoOYNPhsSXpBUSYTL6YuxA9i99J\nPB/eeaa93DNJOg+VHcxrquHmvtcYeQQpF9QQyk4NgucAtEIdgLyGTfXq/y9YozVs\no1gSsuO8SLkAct7yqYbGA7o0Sz7dnKma8nh8NqkvKNKG/gYyj5Wfu9ZFIMiqkfXf\n8o7xbgZyXbUT4Gy5ns3hM3WSfkiXXJ1yTFk0vZJSp728RIWuFzSTZfL2VdQpMzbr\n6dSNe5OrSqMp/N+5JUB96SzQv6LqcP9zkI1OxzSJ3wKBgQDzjMdfYZZS1alF4vtb\nnOHgAETYBX2pkel5ZKF8JW0Js/6jBI7XHFBmaQTYQJsSIRvJV+CCYVYPf0CFZqXr\n1olS4kT27N86TMqnDqCDF5tjAX4ZL3HIRgSfk+wDPO4fpkkLszHSavzaOMsgUIvL\nKqxRNIuydxOgQi1f7ZeQAmqSawKBgQDSyBe7HVmYhXDnglsTr8VveCUvlOUneCaU\nOaahzMFj+dljH9hoFdd+4QMDgST6bHsLftbYRg3YIIPb+6bVcYY711u/QyuQ2VKE\nbviNjNEbuvq3jxdVVd7GuotHS8llmYNehCaVRDcbLzte23fLRSEO/XSjVSl9rZjr\n7MOaSdwvAwKBgGhfrpmrwrZhJpfyvHH4e7x5oQdK4x2mkH4bqDECAQalgrzuGSEK\n21HoM9FRbqOIWNYiuO5nNHCTwlzpLrYxTMyed5uyy7+6ZSbO1+8WUNtPKnE0qfiA\nOT8CL6T7mbkqlCdVdkaM3yvOJw8ENcSt1wc+E5g5+8k0UynHMqrevjldAoGAd+Qi\nQ2cdWDjGkJg/78Gx3oaLODZL5Zhc8UCdfDi344Lw2IX7lLCfw2Z/TVX+z4Y2ssIx\nuBCYvU85UT4hlhSdkpobcH3nYNuMKRHpxLHNGyXOh+wXDI3sSkM/B42e/3BDHdaz\nD4IeihLihUD2MaOfeyRFXMYK9JZyffdNBwxt9jsCgYBb1qNqDw8IcSisKtYIEvDT\nWvPfQ0VOLPqtgQhJP+al4v2X0a053EFVGvgLcbV25EuxG5s6y+iFEzvrH2ksg48f\nGR8P34Qf1hSp0eKsdUZ8zlNGcEPKXUmKrkXtH8IlfeEgZcpPgOUVWpP8Y7UFFaoi\nVsQvWBjaL/5pcjd/Xtv4jA==\n-----END PRIVATE KEY-----"
+GOOGLE_SHEET_ID=1zQ8GWmW72NrhspyhF93ZKBnD1TSvnm69O2Gv2EECCUY
+
+===============================================
+📊 ESTRUCTURA DE HOJAS EN GOOGLE SHEETS
+===============================================
+
+SHEET ID: 1zQ8GWmW72NrhspyhF93ZKBnD1TSvnm69O2Gv2EECCUY
+
+===============================================
+🍽️ HOJAS DEL MENÚ (9 CATEGORÍAS)
+===============================================
+
+COLUMNAS ESTÁNDAR PARA TODAS LAS HOJAS DE MENÚ:
+--------------------------------------------------
+| nombre        | Texto     | Nombre del platillo          | "California Roll"
+| descripcion   | Texto     | Descripción detallada        | "Roll con aguacate, pepino..."
+| precio        | Número    | Precio en MXN                | 85.00
+| imagen_url    | URL       | Link de imagen               | "https://..."
+| nuevo         | Booleano  | ¿Es nuevo?                   | TRUE/SI
+| vegetariano   | Booleano  | ¿Es vegetariano?             | TRUE/SI
+| picante       | Booleano  | ¿Es picante?                 | TRUE/SI
+| favorito      | Booleano  | ¿Es favorito?                | TRUE/SI
+| destacado     | Booleano  | ¿Aparece destacado?          | TRUE/SI
+| promomiercoles| Booleano  | ¿Promo miércoles?            | TRUE/SI
+
+HOJAS REQUERIDAS:
+------------------
+1. Entradas
+2. Arroces
+3. Rollos_Naturales
+4. Rollos_Empanizados
+5. Rollos_Especiales
+6. Rollos_Horneados
+7. Bebidas
+8. Postres
+9. Extras
+
+===============================================
+🏪 HOJA: Sucursales
+===============================================
+
+COLUMNAS REQUERIDAS:
+---------------------
+| nombre         | Texto     | Nombre de la sucursal
+| direccion      | Texto     | Dirección completa
+| telefono       | Texto     | Número de teléfono
+| horario        | Texto     | Horarios de atención
+| ciudad         | Texto     | Ciudad
+| estado         | Texto     | Estado
+| codigo_postal  | Texto     | Código postal
+| imagen_url     | URL       | Imagen de la sucursal
+| activa         | Booleano  | ¿Está activa? (TRUE/SI)
+
+===============================================
+🎁 HOJA: Promociones
+===============================================
+
+COLUMNAS REQUERIDAS:
+---------------------
+| nombre         | Texto     | Nombre de la promoción
+| descripcion    | Texto     | Descripción detallada
+| imagen_url     | URL       | Imagen de la promoción
+| activa         | Booleano  | ¿Está activa?
+| sucursal       | Booleano  | ¿Aplica en sucursal?
+| domicilio      | Booleano  | ¿Aplica en domicilio?
+
+===============================================
+📦 HOJA: Pedidos (PARA GUARDAR ÓRDENES)
+===============================================
+
+COLUMNAS REQUERIDAS:
+---------------------
+| Número de Orden    | Texto     | ID único del pedido
+| Fecha             | Fecha     | Fecha y hora del pedido
+| Nombre del Cliente| Texto     | Nombre completo
+| Teléfono          | Texto     | Número de teléfono
+| Tipo de Entrega   | Texto     | "Recojo en tienda" o "Delivery"
+| Dirección         | Texto     | Dirección de entrega
+| Método de Pago    | Texto     | "Efectivo" o "Tarjeta"
+| Monto de Pago     | Texto     | Cantidad pagada
+| Pago Exacto       | Texto     | "Sí" o "No"
+| Productos         | JSON      | Detalle completo en JSON
+| Subtotal          | Texto     | Suma sin envío
+| Envío             | Texto     | Costo de envío ($30 o $0)
+| Total             | Texto     | Total final
+| Notas             | Texto     | Notas adicionales
+| Tiempo Estimado   | Texto     | Hora estimada de entrega
+| Estado            | Texto     | Estado del pedido
+
+===============================================
+🚀 APIs QUE USAN LAS CREDENCIALES
+===============================================
+
+1. /api/menu - GET
+   - Función: Obtiene todo el menú completo
+   - Cache: 10 minutos en memoria
+   - Retorna: Array de categorías con items
+   - Endpoint test: POST para probar conexión
+
+2. /api/platillos-destacados - GET
+   - Función: Obtiene platillos marcados como 'destacado' o 'favorito'
+   - Cache: 10 minutos
+   - Usa: Recorre todas las categorías del menú
+
+3. /api/promociones - GET
+   - Parámetros: ?tipo=sucursal o ?tipo=domicilio
+   - Cache: 10 minutos
+   - Filtra: Por tipo de promoción
+
+4. /api/sucursales - GET
+   - Parámetros: ?ciudad=nombre_ciudad
+   - Cache: 5 minutos
+   - Filtra: Solo sucursales activas
+
+5. /api/telegram - POST
+   - Función: Envía pedido a Telegram Y guarda en Google Sheets
+   - Guarda en: Hoja "Pedidos"
+   - Campos: Toda la información del pedido
+
+===============================================
+💰 SISTEMA DE PRECIOS
+===============================================
+
+ESTRUCTURA DE PRECIOS:
+-----------------------
+- Almacenamiento: Columna 'precio' en cada hoja de menú
+- Formato: Número decimal (ej: 85.50)
+- Moneda: Pesos Mexicanos (MXN)
+- Cálculos automáticos:
+  - Subtotal = precio × cantidad
+  - Envío = $30.00 (delivery) / $0.00 (pickup)
+  - Total = subtotal + envío
+
+ACTUALIZACIÓN DE PRECIOS:
+-------------------------
+- Método: Editar directamente en Google Sheets
+- Tiempo de actualización: Inmediato (sin cache en menú principal)
+- APIs afectadas: /api/menu, /api/platillos-destacados
+
+===============================================
+🔄 SISTEMA DE CACHE
+===============================================
+
+| API                    | Duración Cache | Razón |
+|------------------------|----------------|-------|
+| /api/menu             | 10 minutos    | Menú cambia frecuentemente |
+| /api/platillos-destacados | 10 minutos    | Depende del menú |
+| /api/promociones      | 10 minutos    | Promociones cambian |
+| /api/sucursales       | 5 minutos     | Sucursales más estables |
+
+NOTA: El cache se resetea automáticamente al reiniciar el servidor.
+
+===============================================
+📝 PROCESO DE ACTUALIZACIÓN
+===============================================
+
+PARA ACTUALIZAR MENÚ/PRECIOS:
+-----------------------------
+1. Editar las hojas en Google Sheets
+2. Guardar cambios
+3. Esperar hasta 10 minutos (o reiniciar servidor)
+4. Verificar en /api/menu que los cambios aparezcan
+
+PARA AGREGAR NUEVA CATEGORÍA:
+-----------------------------
+1. Crear nueva hoja en Google Sheets
+2. Agregar columnas requeridas
+3. Actualizar código en googleSheets.ts (array categoryNames)
+4. Probar la nueva API
+
+===============================================
+⚠️ PUNTOS CRÍTICOS
+===============================================
+
+PERMISOS REQUERIDOS:
+---------------------
+- ✅ Lectura de todas las hojas
+- ✅ Escritura en hoja "Pedidos"
+- ✅ Acceso al spreadsheet completo
+
+VALIDACIONES:
+-------------
+- ✅ Verificación de variables de entorno
+- ✅ Formato de private key (con \n)
+- ✅ Conexión exitosa a Google Sheets
+- ✅ Existencia de hojas requeridas
+
+MANEJO DE ERRORES:
+------------------
+- 🔄 Reintentos automáticos (3 intentos)
+- ⏱️ Backoff exponencial para rate limits
+- 📝 Logs detallados en consola
+- 🚨 Mensajes de error descriptivos
+
+===============================================
+🎯 RESUMEN EJECUTIVO
+===============================================
+
+TOTAL DE FUNCIONALIDADES USANDO CREDENCIALES:
+- 🍽️ 9 categorías de menú con precios dinámicos
+- 🏪 Sucursales con información completa
+- 🎁 Promociones filtradas por tipo
+- ⭐ Platillos destacados automáticos
+- 📦 Guardado de pedidos en spreadsheet
+- 🤖 Envío a Telegram + backup en Sheets
+
+SISTEMA COMPLETAMENTE FUNCIONAL para gestión de restaurante con actualización en tiempo real desde Google Sheets. Los precios y menú se actualizan automáticamente sin necesidad de tocar código.
+
+===============================================
+📞 CONTACTO Y SOPORTE
+===============================================
+
+Proyecto: Mazuhi Sushi Website
+Desarrollador: GitHub Copilot
+Fecha de creación: 27 de noviembre 2025
+Versión: 1.0.0
+
+Para soporte técnico o modificaciones contactar al equipo de desarrollo.
