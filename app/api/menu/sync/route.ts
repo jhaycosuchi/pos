@@ -15,9 +15,12 @@ export async function POST() {
     }
 
     const user = verifyToken(token);
-    if (!user || user.rol !== 'admin') {
-      return NextResponse.json({ message: 'Acceso denegado' }, { status: 403 });
+    if (!user) {
+      return NextResponse.json({ message: 'Token inválido' }, { status: 401 });
     }
+    
+    // Permitir sincronización para usuarios autenticados (admin, mesero, etc)
+    // Solo requiere autenticación válida
 
     console.log('Iniciando sincronización de menú...');
     console.log('Credenciales disponibles:', hasGoogleCredentials());
