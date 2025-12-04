@@ -87,19 +87,22 @@ export default function CajaPage() {
     try {
       const abiertasRes = await fetch(`${API.CUENTAS}?estado=${ESTADOS.CUENTA.ABIERTA}`);
       if (abiertasRes.ok) {
-        const data = await abiertasRes.json();
+        const response = await abiertasRes.json();
+        const data = response.data || response;
         setCuentasAbiertas(Array.isArray(data) ? data : []);
       }
       
-      const response = await fetch(`${API.CUENTAS}?estado=${ESTADOS.CUENTA.CERRADA}`);
-      if (response.ok) {
-        const data = await response.json();
+      const cerradasRes = await fetch(`${API.CUENTAS}?estado=${ESTADOS.CUENTA.CERRADA}`);
+      if (cerradasRes.ok) {
+        const response = await cerradasRes.json();
+        const data = response.data || response;
         setCuentasPorCobrar(Array.isArray(data) ? data : []);
       }
 
       const modificacionesRes = await fetch(`${API.MODIFICACIONES}?estado=pendiente`);
       if (modificacionesRes.ok) {
-        const data = await modificacionesRes.json();
+        const response = await modificacionesRes.json();
+        const data = response.data || response;
         setModificacionesPendientes(Array.isArray(data) ? data : []);
       }
     } catch (error) {
@@ -114,7 +117,8 @@ export default function CajaPage() {
     try {
       const response = await fetch(API.CUENTA_BY_ID(cuenta.id));
       if (response.ok) {
-        const data = await response.json();
+        const result = await response.json();
+        const data = result.data || result;
         setSelectedCuenta(data);
         setTotalAmount(data.total || 0);
       }
