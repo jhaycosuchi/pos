@@ -146,9 +146,9 @@ export async function POST(request: NextRequest) {
 
     // Crear pedido - solo insertar cuenta_id si no es null
     const result = db.prepare(
-      `INSERT INTO pedidos (numero_pedido, usuario_id, mesa_numero, comensales, es_para_llevar, total, estado, creado_en, mesero_id, cuenta_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?)`
-    ).run(numeroPedido, mesero_id, mesa_numero, comensales || 1, es_para_llevar ? 1 : 0, total, estado, mesero_id, cuentaId);
+      `INSERT INTO pedidos (numero_pedido, usuario_id, mesa_numero, comensales, es_para_llevar, cuenta_id, total, estado, creado_en, mesero_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)`
+    ).run(numeroPedido, mesero_id, mesa_numero, comensales || 1, es_para_llevar ? 1 : 0, cuentaId, total, estado, mesero_id);
 
     const pedidoId = result.lastInsertRowid;
     console.log('Pedido creado con ID:', pedidoId);
