@@ -80,7 +80,7 @@ export default function AreasActivasPage() {
   const [editando, setEditando] = useState(false)
 
   useEffect(() => {
-    const storedMesero = localStorage.getItem('mesero')
+    const storedMesero = localStorage.getItem('pos_user')
     if (storedMesero) {
       try {
         const mesero = JSON.parse(storedMesero)
@@ -100,14 +100,18 @@ export default function AreasActivasPage() {
       // Fetch cuentas abiertas
       const abiertasRes = await fetch(`${API.CUENTAS}?estado=${ESTADOS.CUENTA.ABIERTA}`)
       if (abiertasRes.ok) {
-        const data = await abiertasRes.json()
+        const response = await abiertasRes.json()
+        // El API devuelve {success: true, data: [...]} o directamente [...] 
+        const data = response.data || response
         setCuentasAbiertas(Array.isArray(data) ? data : [])
       }
       
       // Fetch cuentas cerradas (pendientes de cobro)
       const cerradasRes = await fetch(`${API.CUENTAS}?estado=${ESTADOS.CUENTA.CERRADA}`)
       if (cerradasRes.ok) {
-        const data = await cerradasRes.json()
+        const response = await cerradasRes.json()
+        // El API devuelve {success: true, data: [...]} o directamente [...] 
+        const data = response.data || response
         setCuentasCerradas(Array.isArray(data) ? data : [])
       }
     } catch (error) {
@@ -128,7 +132,9 @@ export default function AreasActivasPage() {
     try {
       const response = await fetch(API.CUENTA_BY_ID(cuentaId))
       if (response.ok) {
-        const data = await response.json()
+        const result = await response.json()
+        // El API devuelve {success: true, data: {...}} o directamente {...}
+        const data = result.data || result
         setSelectedCuenta(data)
         setShowDetalleModal(true)
       }
@@ -316,8 +322,8 @@ export default function AreasActivasPage() {
   }
 
   // Filtrar cuentas según el tab
-  const cuentasMesa = cuentasAbiertas.filter(c => c.mesa_numero && c.mesa_numero !== 'LLEVAR')
-  const cuentasLlevar = cuentasAbiertas.filter(c => !c.mesa_numero || c.mesa_numero === 'LLEVAR')
+  const cuentasMesa = cuentasAbiertas.filter(c => c.mesa_numero && c.mesa_numero !== 'PARA_LLEVAR')
+  const cuentasLlevar = cuentasAbiertas.filter(c => !c.mesa_numero || c.mesa_numero === 'PARA_LLEVAR')
 
   if (loading) {
     return (
@@ -336,130 +342,92 @@ export default function AreasActivasPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.9 }}
-      className={`backdrop-blur-sm rounded-2xl p-4 border ${
+      className={`backdrop-blur-sm rounded-xl p-3 border transition-all hover:shadow-lg ${
         isPorCobrar 
-          ? 'bg-yellow-500/20 border-yellow-400/40' 
-          : cuenta.mesa_numero && cuenta.mesa_numero !== 'LLEVAR'
-            ? 'bg-blue-500/20 border-blue-400/40'
-            : 'bg-orange-500/20 border-orange-400/40'
+          ? 'bg-yellow-500/20 border-yellow-400/40 hover:border-yellow-400/60' 
+          : cuenta.mesa_numero && cuenta.mesa_numero !== 'PARA_LLEVAR'
+            ? 'bg-blue-500/20 border-blue-400/40 hover:border-blue-400/60'
+            : 'bg-orange-500/20 border-orange-400/40 hover:border-orange-400/60'
       }`}
     >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg ${
+      {/* Header compacto */}
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0 ${
             isPorCobrar 
               ? 'bg-yellow-500 text-white'
-              : cuenta.mesa_numero && cuenta.mesa_numero !== 'LLEVAR'
+              : cuenta.mesa_numero && cuenta.mesa_numero !== 'PARA_LLEVAR'
                 ? 'bg-blue-500 text-white'
                 : 'bg-orange-500 text-white'
           }`}>
-            {cuenta.mesa_numero && cuenta.mesa_numero !== 'LLEVAR' ? (
+            {cuenta.mesa_numero && cuenta.mesa_numero !== 'PARA_LLEVAR' ? (
               cuenta.mesa_numero
             ) : (
-              <ShoppingBag className="w-6 h-6" />
+              <ShoppingBag className="w-5 h-5" />
             )}
           </div>
-          <div>
-            <h3 className="text-white font-semibold text-lg">
+          <div className="min-w-0">
+            <h3 className="text-white font-semibold text-sm truncate">
               {cuenta.numero_cuenta}
             </h3>
-            <div className="flex items-center gap-2 text-sm">
-              {isPorCobrar ? (
-                <span className="text-yellow-300 flex items-center gap-1">
-                  <AlertCircle className="w-4 h-4" />
-                  Por cobrar
-                </span>
-              ) : (
-                <>
-                  <Clock className="w-4 h-4 text-blue-300" />
-                  <span className="text-blue-300">{formatTime(cuenta.fecha_apertura)}</span>
-                  <span className="text-blue-400">•</span>
-                  <span className="text-blue-300">{getTimeSince(cuenta.fecha_apertura)}</span>
-                </>
-              )}
-            </div>
+            <p className="text-white/60 text-xs truncate">
+              {cuenta.mesero_nombre}
+            </p>
           </div>
         </div>
         
-        <div className="text-right">
-          <p className="text-green-400 font-bold text-xl">
+        <div className="text-right flex-shrink-0">
+          <p className="text-green-400 font-bold text-sm">
             ${(cuenta.total || 0).toFixed(2)}
           </p>
-          <p className="text-blue-300 text-sm">
-            {cuenta.total_pedidos} pedido{cuenta.total_pedidos !== 1 ? 's' : ''}
+          <p className="text-white/60 text-xs">
+            {cuenta.total_pedidos} ped.
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 text-white/70 text-sm mb-4">
-        <User className="w-4 h-4" />
-        <span>{cuenta.mesero_nombre}</span>
-        {cuenta.mesa_numero && cuenta.mesa_numero !== 'LLEVAR' && (
-          <>
-            <span className="text-white/40">•</span>
-            <Utensils className="w-4 h-4" />
-            <span>Mesa {cuenta.mesa_numero}</span>
-          </>
-        )}
-      </div>
+      {/* Info compacta */}
+      {!isPorCobrar && (
+        <div className="text-white/60 text-xs mb-2 px-1">
+          {formatTime(cuenta.fecha_apertura)} • {getTimeSince(cuenta.fecha_apertura)}
+        </div>
+      )}
 
+      {/* Botones */}
       {isPorCobrar ? (
-        <div className="grid grid-cols-1 gap-2">
-          <button
-            onClick={() => fetchDetalleCuenta(cuenta.id)}
-            disabled={loadingDetalle}
-            className="bg-yellow-600 hover:bg-yellow-500 text-white py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors"
-          >
-            <Receipt className="w-5 h-5" />
-            <span>Ver Detalle</span>
-          </button>
-          <p className="text-yellow-300/70 text-xs text-center mt-1">
-            Debe cobrarse en caja
-          </p>
-        </div>
+        <button
+          onClick={() => fetchDetalleCuenta(cuenta.id)}
+          disabled={loadingDetalle}
+          className="w-full bg-yellow-600 hover:bg-yellow-500 text-white py-2 px-2 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm"
+        >
+          <Receipt className="w-4 h-4" />
+          <span>Ver Detalle</span>
+        </button>
       ) : (
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 gap-1">
           <button
             onClick={() => fetchDetalleCuenta(cuenta.id)}
             disabled={loadingDetalle}
-            className="bg-blue-600 hover:bg-blue-500 text-white py-3 px-2 rounded-xl flex flex-col items-center gap-1 transition-colors"
+            className="bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg flex items-center justify-center transition-colors"
+            title="Ver detalles"
           >
-            <Receipt className="w-5 h-5" />
-            <span className="text-xs">Ver</span>
+            <Receipt className="w-4 h-4" />
           </button>
           
-          {cuenta.mesa_numero && cuenta.mesa_numero !== 'LLEVAR' ? (
-            <button
-              onClick={() => handleAddPedidoMesa(cuenta)}
-              className="bg-green-600 hover:bg-green-500 text-white py-3 px-2 rounded-xl flex flex-col items-center gap-1 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="text-xs">Mesa</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => handleAddParaLlevar(cuenta)}
-              className="bg-green-600 hover:bg-green-500 text-white py-3 px-2 rounded-xl flex flex-col items-center gap-1 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="text-xs">Agregar</span>
-            </button>
-          )}
-          
           <button
-            onClick={() => handleAddParaLlevar(cuenta)}
-            className="bg-orange-600 hover:bg-orange-500 text-white py-3 px-2 rounded-xl flex flex-col items-center gap-1 transition-colors"
+            onClick={() => cuenta.mesa_numero && cuenta.mesa_numero !== 'PARA_LLEVAR' ? handleAddPedidoMesa(cuenta) : handleAddParaLlevar(cuenta)}
+            className="bg-green-600 hover:bg-green-500 text-white py-2 rounded-lg flex items-center justify-center transition-colors"
+            title="Agregar item"
           >
-            <ShoppingBag className="w-5 h-5" />
-            <span className="text-xs">P.Llevar</span>
+            <Plus className="w-4 h-4" />
           </button>
           
           <button
             onClick={() => handleCerrarCuenta(cuenta)}
-            className="bg-purple-600 hover:bg-purple-500 text-white py-3 px-2 rounded-xl flex flex-col items-center gap-1 transition-colors"
+            className="bg-purple-600 hover:bg-purple-500 text-white py-2 rounded-lg flex items-center justify-center transition-colors"
+            title="Cerrar cuenta"
           >
-            <CheckCircle2 className="w-5 h-5" />
-            <span className="text-xs">Cerrar</span>
+            <CheckCircle2 className="w-4 h-4" />
           </button>
         </div>
       )}

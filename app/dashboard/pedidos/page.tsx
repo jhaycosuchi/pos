@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import Link from 'next/link';
 import { getDb } from '../../../lib/db';
 import {
   Plus,
@@ -107,13 +108,13 @@ export default async function PedidosPage() {
           <h1 className="text-3xl font-bold text-gray-900">Pedidos</h1>
           <p className="text-gray-600 mt-1">Gestiona todos los pedidos del restaurante</p>
         </div>
-        <a
+        <Link
           href="/dashboard/pedidos/nuevo"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
+          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
         >
           <Plus className="w-5 h-5" />
           Nuevo Pedido
-        </a>
+        </Link>
       </div>
 
       {/* Estadísticas rápidas */}
@@ -247,13 +248,13 @@ export default async function PedidosPage() {
                     <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-lg mb-2">No hay pedidos</p>
                     <p className="text-sm text-gray-400 mb-4">Los pedidos aparecerán aquí cuando se creen</p>
-                    <a
+                    <Link
                       href="/dashboard/pedidos/nuevo"
                       className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                     >
                       <Plus className="w-5 h-5" />
                       Crear Primer Pedido
-                    </a>
+                    </Link>
                   </td>
                 </tr>
               ) : (

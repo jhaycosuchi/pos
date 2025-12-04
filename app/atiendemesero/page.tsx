@@ -11,8 +11,9 @@ import {
 } from '@heroicons/react/24/outline';
 import { useSearchParams } from 'next/navigation';
 
-// Config
+// Config y Services
 import { API, PAGES, IMAGES } from '@/lib/config';
+import { AuthService } from '@/lib/services/auth.service';
 
 // Components
 import InitialDeliveryOptions from '@/components/atiendemesero/InitialDeliveryOptions';
@@ -61,16 +62,15 @@ export default function AtiendemeseroPage() {
   const [showCart, setShowCart] = useState(false);
   const [showActiveAreas, setShowActiveAreas] = useState(false);
   const [continuePedidoId, setContinuePedidoId] = useState<number | null>(null);
-  const [cuentaId, setCuentaId] = useState<number | null>(null); // ID de cuenta existente
+  const [cuentaId, setCuentaId] = useState<number | null>(null);
   
-  // Flow states - determina si estamos en selección inicial o en menú
+  // Flow states
   const [step, setStep] = useState<'delivery-type' | 'menu'>('delivery-type');
   
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authPin, setAuthPin] = useState('');
   const [authError, setAuthError] = useState('');
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
-  // Product modal state
   const [selectedProduct, setSelectedProduct] = useState<MenuItem | null>(null);
 
   const loadExistingOrderForMesa = async (mesaNumero: string) => {
@@ -103,7 +103,7 @@ export default function AtiendemeseroPage() {
         console.error('Error loading existing order:', response.status);
       }
       // Si es 404, no hay pedido existente, continuar con carrito vacío
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading existing order for mesa:', error);
     }
   };
@@ -117,7 +117,7 @@ export default function AtiendemeseroPage() {
         setActiveCategory(data[0].nombre || data[0].name || 'General');
       }
       setLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching menu:', error);
       setLoading(false);
     }
@@ -145,7 +145,7 @@ export default function AtiendemeseroPage() {
           }
           
           setStep('menu');
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error parsing mesa data:', error);
         }
       }
@@ -164,7 +164,7 @@ export default function AtiendemeseroPage() {
           setStep('menu');
         }
         localStorage.removeItem('selectedMesa'); // Limpiar después de usar
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error parsing selectedMesa:', error);
       }
     }
@@ -178,7 +178,7 @@ export default function AtiendemeseroPage() {
         setTableNumber(`P.Llevar-Mesa${mesa.numero}`); // ID único para pedidos para llevar desde mesas
         setStep('menu');
         localStorage.removeItem('paraLlevarDesdeMesa'); // Limpiar después de usar
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error parsing paraLlevarDesdeMesa:', error);
       }
     }
@@ -193,7 +193,7 @@ export default function AtiendemeseroPage() {
         setContinuePedidoId(pedido.id);
         setStep('menu');
         localStorage.removeItem('continuePedidoLlevar'); // Limpiar después de usar
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error parsing continuePedidoLlevar:', error);
       }
     }
@@ -344,15 +344,15 @@ export default function AtiendemeseroPage() {
         console.log('Creando nuevo pedido');
         
         const orderData = {
-          mesero_id: 1, // ID del mesero por defecto 
+          mesero_id: AuthService.obtenerMeseroId(), // Obtener mesero dinámicamente
           mesa_numero: tableNumber,
-          comensales: 1, // Número de comensales por defecto
+          comensales: 1,
           es_para_llevar: isParaLlevar,
-          cuenta_id: cuentaId, // ID de cuenta existente si viene de areas-activas
+          cuenta_id: cuentaId,
           items: cart.map(item => {
             const notas = getNotasText(item.options);
             return {
-              menu_item_id: 1, // ID genérico por ahora
+              menu_item_id: 1,
               producto_nombre: item.item.nombre,
               cantidad: item.quantity,
               precio_unitario: item.item.precio,

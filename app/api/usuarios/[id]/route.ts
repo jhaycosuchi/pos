@@ -199,7 +199,7 @@ export async function DELETE(
 
     // No permitir eliminar al último admin
     if (existingUser.rol === 'admin') {
-      const adminCount = db.prepare('SELECT COUNT(*) as count FROM usuarios WHERE rol = ? AND activo = 1').get('admin');
+      const adminCount = db.prepare('SELECT COUNT(*) as count FROM usuarios WHERE rol = ? AND activo = 1').get('admin') as any;
       if (adminCount.count <= 1) {
         return NextResponse.json(
           { message: 'No se puede eliminar al último administrador activo' },

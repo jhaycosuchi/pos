@@ -38,83 +38,108 @@ interface ReporteMeseros {
 }
 
 async function getReportesVentas(periodo: string = '30'): Promise<ReporteVentas[]> {
-  const db = getDb();
-  const dias = parseInt(periodo);
+  try {
+    const db = getDb();
+    const dias = parseInt(periodo) || 30;
 
-  const ventas = db.prepare(`
-    SELECT
-      date(creado_en) as fecha,
-      SUM(total) as total_ventas,
-      COUNT(*) as total_pedidos,
-      AVG(total) as promedio_pedido
-    FROM pedidos
-    WHERE creado_en >= date('now', '-${dias} days') AND estado = 'entregado'
-    GROUP BY date(creado_en)
-    ORDER BY fecha DESC
-  `).all();
+    const ventas = db.prepare(`
+      SELECT
+        date(creado_en) as fecha,
+        SUM(total) as total_ventas,
+        COUNT(*) as total_pedidos,
+        AVG(total) as promedio_pedido
+      FROM pedidos
+      WHERE creado_en >= datetime('now', '-' || ? || ' days') AND estado = 'entregado'
+      GROUP BY date(creado_en)
+      ORDER BY fecha DESC
+    `).all(dias);
 
-  return ventas as ReporteVentas[];
+    return ventas as ReporteVentas[];
+  } catch (error) {
+    console.error('Error fetching sales reports:', error);
+    return [];
+  }
 }
 
 async function getReportesProductos(periodo: string = '30'): Promise<ReporteProductos[]> {
-  const db = getDb();
-  const dias = parseInt(periodo);
+  try {
+    const db = getDb();
+    const dias = parseInt(periodo) || 30;
 
-  const productos = db.prepare(`
-    SELECT
-      mi.nombre,
-      mc.nombre as categoria,
-      SUM(dp.cantidad) as cantidad_vendida,
-      SUM(dp.subtotal) as ingresos_generados
-    FROM detalle_pedidos dp
-    JOIN menu_items mi ON dp.menu_item_id = mi.id
-    LEFT JOIN menu_categorias mc ON mi.categoria_id = mc.id
-    JOIN pedidos p ON dp.pedido_id = p.id
-    WHERE p.creado_en >= date('now', '-${dias} days') AND p.estado = 'entregado'
-    GROUP BY mi.id, mi.nombre, mc.nombre
-    ORDER BY ingresos_generados DESC
-    LIMIT 10
-  `).all();
+    const productos = db.prepare(`
+      SELECT
+        mi.nombre,
+        mc.nombre as categoria,
+        SUM(dp.cantidad) as cantidad_vendida,
+        SUM(dp.subtotal) as ingresos_generados
+      FROM detalle_pedidos dp
+      JOIN menu_items mi ON dp.menu_item_id = mi.id
+      LEFT JOIN menu_categorias mc ON mi.categoria_id = mc.id
+      JOIN pedidos p ON dp.pedido_id = p.id
+      WHERE p.creado_en >= datetime('now', '-' || ? || ' days') AND p.estado = 'entregado'
+      GROUP BY mi.id, mi.nombre, mc.nombre
+      ORDER BY ingresos_generados DESC
+      LIMIT 10
+    `).all(dias);
 
-  return productos as ReporteProductos[];
+    return productos as ReporteProductos[];
+  } catch (error) {
+    console.error('Error fetching product reports:', error);
+    return [];
+  }
 }
 
 async function getReportesMeseros(periodo: string = '30'): Promise<ReporteMeseros[]> {
-  const db = getDb();
-  const dias = parseInt(periodo);
+  try {
+    const db = getDb();
+    const dias = parseInt(periodo) || 30;
 
-  const meseros = db.prepare(`
-    SELECT
-      u.nombre,
-      COUNT(p.id) as pedidos_atendidos,
-      SUM(p.total) as ventas_totales,
-      AVG(p.total) as promedio_pedido
-    FROM usuarios u
-    LEFT JOIN pedidos p ON u.id = p.usuario_id AND p.creado_en >= date('now', '-${dias} days') AND p.estado = 'entregado'
-    WHERE u.rol = 'mesero'
-    GROUP BY u.id, u.nombre
-    ORDER BY ventas_totales DESC
-  `).all();
+    const meseros = db.prepare(`
+      SELECT
+        u.nombre,
+        COUNT(p.id) as pedidos_atendidos,
+        COALESCE(SUM(p.total), 0) as ventas_totales,
+        COALESCE(AVG(p.total), 0) as promedio_pedido
+      FROM usuarios u
+      LEFT JOIN pedidos p ON u.id = p.usuario_id AND p.creado_en >= datetime('now', '-' || ? || ' days') AND p.estado = 'entregado'
+      WHERE u.rol = 'mesero'
+      GROUP BY u.id, u.nombre
+      ORDER BY ventas_totales DESC
+    `).all(dias);
 
-  return meseros as ReporteMeseros[];
+    return meseros as ReporteMeseros[];
+  } catch (error) {
+    console.error('Error fetching waiter reports:', error);
+    return [];
+  }
 }
 
 async function getEstadisticasGenerales(periodo: string = '30') {
-  const db = getDb();
-  const dias = parseInt(periodo);
+  try {
+    const db = getDb();
+    const dias = parseInt(periodo) || 30;
 
-  const stats = db.prepare(`
-    SELECT
-      COUNT(DISTINCT p.id) as total_pedidos,
-      SUM(p.total) as total_ventas,
-      AVG(p.total) as promedio_pedido,
-      COUNT(DISTINCT u.id) as meseros_activos
-    FROM pedidos p
-    JOIN usuarios u ON p.usuario_id = u.id
-    WHERE p.creado_en >= date('now', '-${dias} days') AND p.estado = 'entregado'
-  `).get();
+    const stats = db.prepare(`
+      SELECT
+        COUNT(DISTINCT p.id) as total_pedidos,
+        COALESCE(SUM(p.total), 0) as total_ventas,
+        COALESCE(AVG(p.total), 0) as promedio_pedido,
+        COUNT(DISTINCT u.id) as meseros_activos
+      FROM pedidos p
+      JOIN usuarios u ON p.usuario_id = u.id
+      WHERE p.creado_en >= datetime('now', '-' || ? || ' days') AND p.estado = 'entregado'
+    `).get(dias);
 
-  return stats;
+    return stats;
+  } catch (error) {
+    console.error('Error fetching general statistics:', error);
+    return {
+      total_pedidos: 0,
+      total_ventas: 0,
+      promedio_pedido: 0,
+      meseros_activos: 0
+    };
+  }
 }
 
 export default async function ReportesPage() {
@@ -231,8 +256,8 @@ export default async function ReportesPage() {
                   </span>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-medium text-gray-900">${venta.total_ventas.toFixed(2)}</div>
-                  <div className="text-xs text-gray-500">{venta.total_pedidos} pedidos</div>
+                  <div className="text-sm font-medium text-gray-900">${(venta.total_ventas || 0).toFixed(2)}</div>
+                  <div className="text-xs text-gray-500">{venta.total_pedidos || 0} pedidos</div>
                 </div>
               </div>
             ))}
@@ -254,12 +279,12 @@ export default async function ReportesPage() {
                   </div>
                   <div>
                     <div className="text-sm font-medium text-gray-900">{producto.nombre}</div>
-                    <div className="text-xs text-gray-500">{producto.categoria}</div>
+                    <div className="text-xs text-gray-500">{producto.categoria || 'Sin categoría'}</div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-medium text-gray-900">{producto.cantidad_vendida} vendidos</div>
-                  <div className="text-xs text-green-600">${producto.ingresos_generados.toFixed(2)}</div>
+                  <div className="text-sm font-medium text-gray-900">{producto.cantidad_vendida || 0} vendidos</div>
+                  <div className="text-xs text-green-600">${(producto.ingresos_generados || 0).toFixed(2)}</div>
                 </div>
               </div>
             ))}
@@ -301,13 +326,13 @@ export default async function ReportesPage() {
                     <div className="text-sm font-medium text-gray-900">{mesero.nombre}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{mesero.pedidos_atendidos}</div>
+                    <div className="text-sm text-gray-900">{mesero.pedidos_atendidos || 0}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-green-600">${mesero.ventas_totales.toFixed(2)}</div>
+                    <div className="text-sm font-medium text-green-600">${(mesero.ventas_totales || 0).toFixed(2)}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">${mesero.promedio_pedido.toFixed(2)}</div>
+                    <div className="text-sm text-gray-900">${(mesero.promedio_pedido || 0).toFixed(2)}</div>
                   </td>
                 </tr>
               ))}

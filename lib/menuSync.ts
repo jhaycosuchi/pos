@@ -220,7 +220,7 @@ export async function getMenuFromDatabase(): Promise<MenuCategory[]> {
     for (const categoria of categorias as any[]) {
       // Obtener items activos de la categoría
       const items = db.prepare(
-        `SELECT nombre, descripcion, precio, imagen_url, imagen_local,
+        `SELECT id, nombre, descripcion, precio, imagen_url, imagen_local,
                 nuevo, vegetariano, picante, favorito, destacado, promomiercoles
          FROM menu_items
          WHERE categoria_id = ? AND disponible = 1 AND precio > 0
@@ -228,18 +228,26 @@ export async function getMenuFromDatabase(): Promise<MenuCategory[]> {
       ).all(categoria.id);
 
       // Convertir items al formato esperado
-      const menuItems: MenuItem[] = (items as any[]).map((item: any) => ({
-        nombre: item.nombre,
-        descripcion: item.descripcion,
-        precio: item.precio,
-        imagen_url: item.imagen_local || item.imagen_url, // Preferir imagen local
-        nuevo: item.nuevo === 1,
-        vegetariano: item.vegetariano === 1,
-        picante: item.picante === 1,
-        favorito: item.favorito === 1,
-        destacado: item.destacado === 1,
-        promomiercoles: item.promomiercoles === 1,
-      }));
+      const menuItems: MenuItem[] = (items as any[]).map((item: any) => {
+        let imageUrl = item.imagen_local || item.imagen_url;
+        // Agregar basePath si la imagen es local y no comienza con /pos
+        if (imageUrl && imageUrl.startsWith('/menu-images')) {
+          imageUrl = `/pos${imageUrl}`;
+        }
+        return {
+          id: item.id,
+          nombre: item.nombre,
+          descripcion: item.descripcion,
+          precio: item.precio,
+          imagen_url: imageUrl, // Preferir imagen local
+          nuevo: item.nuevo === 1,
+          vegetariano: item.vegetariano === 1,
+          picante: item.picante === 1,
+          favorito: item.favorito === 1,
+          destacado: item.destacado === 1,
+          promomiercoles: item.promomiercoles === 1,
+        };
+      });
 
       if (menuItems.length > 0) {
         menu.push({

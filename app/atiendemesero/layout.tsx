@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { PAGES } from '@/lib/config';
+import { PedidoProvider } from '@/lib/context/PedidoContext';
 
 interface Mesero {
   id: number;
@@ -53,5 +54,9 @@ export default function AtiendemeseroLayout({
     );
   }
 
-  return <>{children}</>;
+  return (
+    <PedidoProvider>
+      {children}
+    </PedidoProvider>
+  );
 }

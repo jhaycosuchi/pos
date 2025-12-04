@@ -1,18 +1,16 @@
 export const dynamic = 'force-dynamic';
 
+import Link from 'next/link';
 import { getDb } from '../../../lib/db';
+import TablaUsuarios from './tabla-usuarios';
 import {
   Plus,
-  Search,
-  Edit,
-  Trash2,
-  Eye,
-  User,
   Users,
   Shield,
   ShieldCheck,
+  User,
   Settings,
-  Key
+  Search
 } from 'lucide-react';
 
 interface Usuario {
@@ -44,9 +42,9 @@ async function getUsuarios(): Promise<Usuario[]> {
 async function getEstadisticasUsuarios() {
   const db = getDb();
 
-  const total = db.prepare('SELECT COUNT(*) as count FROM usuarios').get();
-  const activos = db.prepare('SELECT COUNT(*) as count FROM usuarios WHERE activo = 1').get();
-  const porRol = db.prepare('SELECT rol, COUNT(*) as count FROM usuarios GROUP BY rol').all();
+  const total = db.prepare('SELECT COUNT(*) as count FROM usuarios').get() as { count: number } | undefined;
+  const activos = db.prepare('SELECT COUNT(*) as count FROM usuarios WHERE activo = 1').get() as { count: number } | undefined;
+  const porRol = db.prepare('SELECT rol, COUNT(*) as count FROM usuarios GROUP BY rol').all() as Array<{ rol: string; count: number }>;
 
   return {
     total: total?.count || 0,
@@ -94,13 +92,13 @@ export default async function UsuariosPage() {
           <h1 className="text-3xl font-bold text-gray-900">Gestión de Usuarios</h1>
           <p className="text-gray-600 mt-1">Administra usuarios, roles y permisos del sistema</p>
         </div>
-        <a
+        <Link
           href="/dashboard/usuarios/nuevo"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
         >
           <Plus className="w-5 h-5" />
           Nuevo Usuario
-        </a>
+        </Link>
       </div>
 
       {/* Estadísticas */}
@@ -134,7 +132,7 @@ export default async function UsuariosPage() {
             <div>
               <p className="text-sm font-medium text-gray-600">Administradores</p>
               <p className="text-3xl font-bold text-gray-900">
-                {stats.porRol.find((r: any) => r.rol === 'admin')?.count || 0}
+                {stats.porRol.filter(r => r.rol === 'admin').reduce((sum, r) => sum + r.count, 0)}
               </p>
             </div>
             <div className="bg-red-100 p-3 rounded-lg">
@@ -148,7 +146,7 @@ export default async function UsuariosPage() {
             <div>
               <p className="text-sm font-medium text-gray-600">Meseros</p>
               <p className="text-3xl font-bold text-gray-900">
-                {stats.porRol.find((r: any) => r.rol === 'mesero')?.count || 0}
+                {stats.porRol.filter(r => r.rol === 'mesero').reduce((sum, r) => sum + r.count, 0)}
               </p>
             </div>
             <div className="bg-purple-100 p-3 rounded-lg">
@@ -203,71 +201,7 @@ export default async function UsuariosPage() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Usuario
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Creado
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {users.map((usuario) => (
-                    <tr key={usuario.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                            <User className="w-5 h-5 text-indigo-600" />
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{usuario.nombre}</div>
-                            <div className="text-sm text-gray-500">@{usuario.username}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          usuario.estado
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {usuario.estado ? 'Activo' : 'Inactivo'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(usuario.creado_en).toLocaleDateString('es-ES')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center gap-2">
-                          <button className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors">
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button className="text-yellow-600 hover:text-yellow-900 p-1 rounded hover:bg-yellow-50 transition-colors">
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                          <button className="text-purple-600 hover:text-purple-900 p-1 rounded hover:bg-purple-50 transition-colors">
-                            <Key className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <TablaUsuarios users={users} rol={rol} />
           </div>
         ))}
 
@@ -276,13 +210,13 @@ export default async function UsuariosPage() {
             <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No hay usuarios registrados</h3>
             <p className="text-gray-500 mb-6">Comienza creando tu primer usuario administrador</p>
-            <a
+            <Link
               href="/dashboard/usuarios/nuevo"
               className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
             >
               <Plus className="w-5 h-5" />
               Crear Usuario Admin
-            </a>
+            </Link>
           </div>
         )}
       </div>

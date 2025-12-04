@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import Link from 'next/link';
 import { getDb } from '../../../lib/db';
 import {
   TrendingUp,
@@ -266,12 +267,12 @@ export default async function PreciosPage() {
             <DollarSign className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No hay productos con precios</h3>
             <p className="text-gray-500 mb-6">Los productos aparecerán aquí cuando tengan precios asignados</p>
-            <a
+            <Link
               href="/dashboard/menu"
               className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
             >
               Ir al Menú
-            </a>
+            </Link>
           </div>
         )}
       </div>

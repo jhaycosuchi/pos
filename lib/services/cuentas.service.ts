@@ -27,7 +27,11 @@ export class CuentasService extends BaseService {
     return this.runQuery(
       () => {
         let query = `
-          SELECT c.*, u.nombre as mesero_nombre
+          SELECT 
+            c.*, 
+            u.nombre as mesero_nombre,
+            COALESCE((SELECT COUNT(*) FROM pedidos WHERE cuenta_id = c.id), 0) as total_pedidos,
+            COALESCE((SELECT SUM(total) FROM pedidos WHERE cuenta_id = c.id), 0) as total
           FROM cuentas c
           LEFT JOIN usuarios u ON c.mesero_id = u.id
           WHERE 1=1

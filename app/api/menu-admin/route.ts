@@ -26,9 +26,22 @@ export async function GET() {
       JOIN menu_categorias mc ON mi.categoria_id = mc.id
       WHERE mi.activo = 1
       ORDER BY mc.orden, mi.nombre
-    `).all();
+    `).all() as any[];
     
-    return NextResponse.json(items);
+    // Procesar las imágenes para agregar basePath a las imágenes locales
+    const processedItems = items.map(item => {
+      let imageUrl = item.imagen_local || item.imagen_url;
+      // Agregar basePath si la imagen es local y no comienza con /pos
+      if (imageUrl && imageUrl.startsWith('/menu-images')) {
+        imageUrl = `/pos${imageUrl}`;
+      }
+      return {
+        ...item,
+        imagen_url: imageUrl,
+      };
+    });
+    
+    return NextResponse.json(processedItems);
   } catch (error) {
     console.error('Error getting menu items:', error);
     return NextResponse.json(

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { API, PAGES, IMAGES } from '@/lib/config';
+import { AuthService } from '@/lib/services';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -25,6 +26,11 @@ export default function LoginPage() {
       });
 
       if (response.ok) {
+        const data = await response.json();
+        // Guardar usuario en localStorage
+        if (data.user) {
+          AuthService.guardarUsuario(data.user);
+        }
         router.push(PAGES.HOME);
       } else {
         const data = await response.json();

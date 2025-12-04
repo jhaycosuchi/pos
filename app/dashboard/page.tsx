@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import Link from 'next/link';
 import { verifyToken } from '../../lib/auth';
 import { getDb } from '../../lib/db';
 import {
@@ -91,53 +92,53 @@ export default async function DashboardPage() {
       <div className="bg-white p-6 rounded-lg shadow-md">
         <h2 className="text-xl font-semibold mb-4 text-primary">Acciones Rápidas</h2>
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-          <a
-            href="/pedidos/nuevo"
+          <Link
+            href="/dashboard/pedidos/nuevo"
             className="bg-secondary text-white p-4 rounded-lg hover:bg-blue-600 transition-colors text-center flex flex-col items-center justify-center space-y-2"
           >
             <ClipboardList className="h-6 w-6" />
             <div className="font-medium">Nuevo Pedido</div>
-          </a>
+          </Link>
 
-          <a
-            href="/pedidos"
+          <Link
+            href="/dashboard/pedidos"
             className="bg-primary text-white p-4 rounded-lg hover:bg-gray-800 transition-colors text-center flex flex-col items-center justify-center space-y-2"
           >
             <ClipboardList className="h-6 w-6" />
             <div className="font-medium">Ver Pedidos</div>
-          </a>
+          </Link>
 
-          <a
+          <Link
             href="/dashboard/caja"
             className="bg-accent text-white p-4 rounded-lg hover:bg-yellow-600 transition-colors text-center flex flex-col items-center justify-center space-y-2"
           >
             <DollarSign className="h-6 w-6" />
             <div className="font-medium">Control Caja</div>
-          </a>
+          </Link>
 
-          <a
-            href="/menu"
+          <Link
+            href="/dashboard/menu"
             className="bg-green-600 text-white p-4 rounded-lg hover:bg-green-700 transition-colors text-center flex flex-col items-center justify-center space-y-2"
           >
             <Utensils className="h-6 w-6" />
             <div className="font-medium">Gestionar Menú</div>
-          </a>
+          </Link>
 
-          <a
-            href="/precios"
+          <Link
+            href="/dashboard/precios"
             className="bg-success text-white p-4 rounded-lg hover:bg-green-600 transition-colors text-center flex flex-col items-center justify-center space-y-2"
           >
             <Tag className="h-6 w-6" />
             <div className="font-medium">Gestionar Precios</div>
-          </a>
+          </Link>
 
-          <a
-            href="/meseros"
+          <Link
+            href="/dashboard/meseros"
             className="bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 transition-colors text-center flex flex-col items-center justify-center space-y-2"
           >
             <ChefHat className="h-6 w-6" />
             <div className="font-medium">Gestionar Meseros</div>
-          </a>
+          </Link>
         </div>
       </div>
 
@@ -147,9 +148,9 @@ export default async function DashboardPage() {
         <div className="text-center text-gray-500 py-8">
           <ClipboardList className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <p>No hay pedidos recientes</p>
-          <a href="/pedidos/nuevo" className="btn-primary mt-4 inline-block">
+          <Link href="/dashboard/pedidos/nuevo" className="btn-primary mt-4 inline-block">
             Crear Primer Pedido
-          </a>
+          </Link>
         </div>
       </div>
     </div>

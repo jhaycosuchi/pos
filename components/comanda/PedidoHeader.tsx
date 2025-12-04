@@ -79,7 +79,7 @@ export function PedidoHeader({
       </h3>
       <div className="flex items-center justify-between mt-1">
         <p className="text-sm text-gray-600 font-semibold">👨‍🍳 {mesero_nombre}</p>
-        <p className="text-lg font-bold text-green-700">💵 ${total.toFixed(2)}</p>
+        <p className="text-lg font-bold text-green-700">💵 ${(total || 0).toFixed(2)}</p>
       </div>
     </div>
   );

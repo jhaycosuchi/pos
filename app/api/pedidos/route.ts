@@ -118,22 +118,37 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getDb();
+    
+    // Validar que el mesero existe
+    const meseroExiste = db.prepare('SELECT id FROM usuarios WHERE id = ?').get(mesero_id);
+    if (!meseroExiste) {
+      return NextResponse.json(
+        { message: 'El mesero especificado no existe' },
+        { status: 400 }
+      );
+    }
+
     const numeroPedido = generateNumeroPedido();
 
     console.log('Creando pedido con número:', numeroPedido);
 
     // Para pedidos de mesa, obtener o crear cuenta
-    let cuentaId = providedCuentaId;
+    let cuentaId: number | null = providedCuentaId || null;
     if (!es_para_llevar && !cuentaId) {
-      cuentaId = getOrCreateCuenta(db, mesa_numero, mesero_id);
-      console.log('Cuenta ID:', cuentaId);
+      try {
+        cuentaId = getOrCreateCuenta(db, mesa_numero, mesero_id);
+        console.log('Cuenta ID creada:', cuentaId);
+      } catch (error) {
+        console.error('Error creando cuenta:', error);
+        throw new Error(`No se pudo crear la cuenta: ${error}`);
+      }
     }
 
-    // Crear pedido
+    // Crear pedido - solo insertar cuenta_id si no es null
     const result = db.prepare(
       `INSERT INTO pedidos (numero_pedido, usuario_id, mesa_numero, comensales, es_para_llevar, total, estado, creado_en, mesero_id, cuenta_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?)`
-    ).run(numeroPedido, mesero_id, mesa_numero, comensales || 1, es_para_llevar ? 1 : 0, total, estado, mesero_id, cuentaId || null);
+    ).run(numeroPedido, mesero_id, mesa_numero, comensales || 1, es_para_llevar ? 1 : 0, total, estado, mesero_id, cuentaId);
 
     const pedidoId = result.lastInsertRowid;
     console.log('Pedido creado con ID:', pedidoId);
@@ -181,8 +196,21 @@ export async function POST(request: NextRequest) {
         total
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creando pedido:', error);
+    
+    // Detalles específicos para FOREIGN KEY errors
+    if (error.message?.includes('FOREIGN KEY')) {
+      return NextResponse.json(
+        { 
+          message: 'Error: Referencia inválida en la base de datos',
+          details: error.message,
+          error: String(error) 
+        },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { message: 'Error interno del servidor', error: String(error) },
       { status: 500 }

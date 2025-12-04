@@ -36,12 +36,9 @@ export default function InitialDeliveryOptions() {
             className="relative group"
           >
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl sm:rounded-3xl blur opacity-0 group-hover:opacity-100 transition duration-300"></div>
-            <button
-              onClick={() => {
-                const event = new CustomEvent('deliveryTypeSelected', { detail: { paraLlevar: true } });
-                window.dispatchEvent(event);
-              }}
-              className="relative w-full h-full bg-gray-800 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 text-center hover:shadow-2xl transition duration-300 border-2 border-blue-500/30 group-hover:border-blue-400 flex flex-col items-center justify-center min-h-64 sm:min-h-80"
+            <Link
+              href="/atiendemesero/para-llevar"
+              className="relative w-full h-full bg-gray-800 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 text-center hover:shadow-2xl transition duration-300 border-2 border-blue-500/30 group-hover:border-blue-400 flex flex-col items-center justify-center min-h-64 sm:min-h-80 block"
             >
               <ShoppingBag className="w-16 sm:w-20 md:w-24 h-16 sm:h-20 md:h-24 text-blue-400 mb-3 sm:mb-6" />
               <div className="text-2xl sm:text-3xl font-bold text-white mb-2 sm:mb-3">Para Llevar</div>
@@ -49,7 +46,7 @@ export default function InitialDeliveryOptions() {
               <div className="inline-block px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white font-bold text-sm sm:text-base rounded-xl hover:bg-blue-700 transition">
                 Continuar
               </div>
-            </button>
+            </Link>
           </motion.div>
 
           {/* Comer Aquí */}
@@ -60,7 +57,7 @@ export default function InitialDeliveryOptions() {
           >
             <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl sm:rounded-3xl blur opacity-0 group-hover:opacity-100 transition duration-300"></div>
             <Link
-              href={PAGES.ATIENDEMESERO_MESAS}
+              href="/atiendemesero/comer-aqui"
               className="relative w-full h-full bg-gray-800 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 text-center hover:shadow-2xl transition duration-300 border-2 border-emerald-500/30 group-hover:border-emerald-400 flex flex-col items-center justify-center min-h-64 sm:min-h-80 block"
             >
               <Utensils className="w-16 sm:w-20 md:w-24 h-16 sm:h-20 md:h-24 text-emerald-400 mb-3 sm:mb-6" />
