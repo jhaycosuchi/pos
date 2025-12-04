@@ -26,13 +26,16 @@ import { API, PAGES, ROUTES, ESTADOS } from '@/lib/config'
 interface CuentaActiva {
   id: number
   numero_cuenta: string
+  numero_pedido?: string
   mesa_numero: number | string | null
   mesero_nombre: string
   total: number
   total_pedidos: number
   fecha_apertura: string
+  creado_en?: string
   estado: string
   es_para_llevar?: number
+  tipo?: 'cuenta' | 'pedido_llevar'
 }
 
 interface PedidoCuenta {
@@ -97,22 +100,26 @@ export default function AreasActivasPage() {
 
   const fetchCuentas = async () => {
     try {
-      // Fetch cuentas abiertas
-      const abiertasRes = await fetch(`${API.CUENTAS}?estado=${ESTADOS.CUENTA.ABIERTA}`)
-      if (abiertasRes.ok) {
-        const response = await abiertasRes.json()
-        // El API devuelve {success: true, data: [...]} o directamente [...] 
-        const data = response.data || response
-        setCuentasAbiertas(Array.isArray(data) ? data : [])
-      }
-      
-      // Fetch cuentas cerradas (pendientes de cobro)
-      const cerradasRes = await fetch(`${API.CUENTAS}?estado=${ESTADOS.CUENTA.CERRADA}`)
-      if (cerradasRes.ok) {
-        const response = await cerradasRes.json()
-        // El API devuelve {success: true, data: [...]} o directamente [...] 
-        const data = response.data || response
-        setCuentasCerradas(Array.isArray(data) ? data : [])
+      // Usar el endpoint /areas-activas que devuelve cuentas + pedidos para llevar
+      const response = await fetch(API.AREAS_ACTIVAS)
+      if (response.ok) {
+        const data = await response.json()
+        const allItems = Array.isArray(data) ? data : data.data || []
+        
+        // Separar cuentas abiertas (tipo: cuenta, estado: abierta)
+        // Y cuentas cerradas (tipo: cuenta, estado: cerrada)
+        // También incluir pedidos para llevar (tipo: pedido_llevar, estado: pendiente)
+        const cuentasAbiertas = allItems.filter((item: any) => {
+          if (item.tipo === 'pedido_llevar') return item.estado === 'pendiente'
+          return item.estado === 'abierta'
+        })
+        
+        const cuentasCerradas = allItems.filter((item: any) => 
+          item.tipo === 'cuenta' && item.estado === 'cerrada'
+        )
+        
+        setCuentasAbiertas(cuentasAbiertas)
+        setCuentasCerradas(cuentasCerradas)
       }
     } catch (error) {
       console.error('Error fetching cuentas:', error)
@@ -322,8 +329,15 @@ export default function AreasActivasPage() {
   }
 
   // Filtrar cuentas según el tab
-  const cuentasMesa = cuentasAbiertas.filter(c => c.mesa_numero && c.mesa_numero !== 'PARA_LLEVAR')
-  const cuentasLlevar = cuentasAbiertas.filter(c => !c.mesa_numero || c.mesa_numero === 'PARA_LLEVAR')
+  // Para mesas: cuentas de tipo 'cuenta' con mesa_numero que no sea 'PARA_LLEVAR'
+  // Para llevar: cuentas de tipo 'cuenta' con mesa_numero = 'PARA_LLEVAR' + pedidos de tipo 'pedido_llevar'
+  const cuentasMesa = cuentasAbiertas.filter(c => 
+    c.tipo === 'cuenta' && c.mesa_numero && c.mesa_numero !== 'PARA_LLEVAR'
+  )
+  const cuentasLlevar = cuentasAbiertas.filter(c => 
+    (c.tipo === 'cuenta' && (c.mesa_numero === 'PARA_LLEVAR' || !c.mesa_numero)) || 
+    c.tipo === 'pedido_llevar'
+  )
 
   if (loading) {
     return (
@@ -362,13 +376,15 @@ export default function AreasActivasPage() {
           }`}>
             {cuenta.mesa_numero && cuenta.mesa_numero !== 'PARA_LLEVAR' ? (
               cuenta.mesa_numero
+            ) : cuenta.tipo === 'pedido_llevar' ? (
+              <ShoppingBag className="w-5 h-5" />
             ) : (
               <ShoppingBag className="w-5 h-5" />
             )}
           </div>
           <div className="min-w-0">
             <h3 className="text-white font-semibold text-sm truncate">
-              {cuenta.numero_cuenta}
+              {cuenta.tipo === 'pedido_llevar' ? cuenta.numero_pedido : cuenta.numero_cuenta}
             </h3>
             <p className="text-white/60 text-xs truncate">
               {cuenta.mesero_nombre}
@@ -380,16 +396,18 @@ export default function AreasActivasPage() {
           <p className="text-green-400 font-bold text-sm">
             ${(cuenta.total || 0).toFixed(2)}
           </p>
-          <p className="text-white/60 text-xs">
-            {cuenta.total_pedidos} ped.
-          </p>
+          {cuenta.tipo !== 'pedido_llevar' && (
+            <p className="text-white/60 text-xs">
+              {cuenta.total_pedidos} ped.
+            </p>
+          )}
         </div>
       </div>
 
       {/* Info compacta */}
       {!isPorCobrar && (
         <div className="text-white/60 text-xs mb-2 px-1">
-          {formatTime(cuenta.fecha_apertura)} • {getTimeSince(cuenta.fecha_apertura)}
+          {formatTime(cuenta.tipo === 'pedido_llevar' ? (cuenta.creado_en || cuenta.fecha_apertura) : cuenta.fecha_apertura)} • {getTimeSince(cuenta.tipo === 'pedido_llevar' ? (cuenta.creado_en || cuenta.fecha_apertura) : cuenta.fecha_apertura)}
         </div>
       )}
 
@@ -403,7 +421,19 @@ export default function AreasActivasPage() {
           <Receipt className="w-4 h-4" />
           <span>Ver Detalle</span>
         </button>
+      ) : cuenta.tipo === 'pedido_llevar' ? (
+        // Para pedidos para llevar, solo mostrar botón de ver detalle
+        <button
+          onClick={() => fetchDetalleCuenta(cuenta.id)}
+          disabled={loadingDetalle}
+          className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm"
+          title="Ver detalles del pedido"
+        >
+          <Receipt className="w-4 h-4" />
+          <span>Ver Pedido</span>
+        </button>
       ) : (
+        // Para cuentas de mesa
         <div className="grid grid-cols-3 gap-1">
           <button
             onClick={() => fetchDetalleCuenta(cuenta.id)}
