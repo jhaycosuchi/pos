@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getDb } from '../../../lib/db';
 import {
   Plus,
@@ -36,15 +38,15 @@ async function getMeseros(): Promise<Mesero[]> {
       u.id,
       u.username,
       u.nombre,
-      u.estado,
+      u.activo as estado,
       u.rol,
       u.creado_en,
       COUNT(p.id) as pedidos_atendidos,
       COALESCE(SUM(p.total), 0) as ventas_totales
     FROM usuarios u
-    LEFT JOIN pedidos p ON u.id = p.usuario_id AND p.fecha >= date('now', '-30 days')
+    LEFT JOIN pedidos p ON u.id = p.usuario_id AND p.creado_en >= date('now', '-30 days')
     WHERE u.rol = 'mesero'
-    GROUP BY u.id, u.username, u.nombre, u.estado, u.rol, u.creado_en
+    GROUP BY u.id, u.username, u.nombre, u.activo, u.rol, u.creado_en
     ORDER BY u.nombre
   `).all();
 
@@ -55,18 +57,18 @@ async function getEstadisticasMeseros() {
   const db = getDb();
 
   const total = db.prepare("SELECT COUNT(*) as count FROM usuarios WHERE rol = 'mesero'").get();
-  const activos = db.prepare("SELECT COUNT(*) as count FROM usuarios WHERE rol = 'mesero' AND estado = 1").get();
+  const activos = db.prepare("SELECT COUNT(*) as count FROM usuarios WHERE rol = 'mesero' AND activo = 1").get();
   const pedidosMes = db.prepare(`
     SELECT COUNT(*) as count
     FROM pedidos p
     JOIN usuarios u ON p.usuario_id = u.id
-    WHERE u.rol = 'mesero' AND p.fecha >= date('now', '-30 days')
+    WHERE u.rol = 'mesero' AND p.creado_en >= date('now', '-30 days')
   `).get();
   const ventasMes = db.prepare(`
     SELECT COALESCE(SUM(p.total), 0) as total
     FROM pedidos p
     JOIN usuarios u ON p.usuario_id = u.id
-    WHERE u.rol = 'mesero' AND p.fecha >= date('now', '-30 days')
+    WHERE u.rol = 'mesero' AND p.creado_en >= date('now', '-30 days')
   `).get();
 
   return {

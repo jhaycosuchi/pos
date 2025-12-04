@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getDb } from '../../../lib/db';
 import {
   TrendingUp,
@@ -26,15 +28,16 @@ async function getPreciosData(): Promise<PrecioItem[]> {
   const db = getDb();
   const items = db.prepare(`
     SELECT
-      id,
-      nombre,
-      precio as precio_actual,
-      categoria,
-      disponible,
-      actualizado_en as ultima_actualizacion
-    FROM menu_items
-    WHERE disponible = 1
-    ORDER BY categoria, nombre
+      mi.id,
+      mi.nombre,
+      mi.precio as precio_actual,
+      mc.nombre as categoria,
+      mi.disponible,
+      mi.creado_en as ultima_actualizacion
+    FROM menu_items mi
+    LEFT JOIN menu_categorias mc ON mi.categoria_id = mc.id
+    WHERE mi.disponible = 1
+    ORDER BY mc.nombre, mi.nombre
   `).all();
 
   return items as PrecioItem[];

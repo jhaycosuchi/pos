@@ -24,7 +24,7 @@ export default function Sidebar({ user }: SidebarProps) {
   const menuItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/dashboard/pedidos', label: 'Pedidos', icon: ClipboardList },
-    { href: '/caja', label: 'Caja', icon: DollarSign },
+    { href: '/dashboard/caja', label: 'Caja', icon: DollarSign },
     { href: '/dashboard/precios', label: 'Precios', icon: Tag },
     { href: '/dashboard/menu', label: 'Menú', icon: Utensils },
     { href: '/dashboard/meseros', label: 'Meseros', icon: ChefHat },

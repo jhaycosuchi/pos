@@ -86,7 +86,7 @@ export const PAGES = {
   AREAS_ACTIVAS: '/areas-activas',
   
   // Caja
-  CAJA: '/caja',
+  CAJA: '/dashboard/caja',
   
   // Comanda (cocina)
   COMANDA: '/comanda',

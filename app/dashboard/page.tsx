@@ -108,7 +108,7 @@ export default async function DashboardPage() {
           </a>
 
           <a
-            href="/caja"
+            href="/dashboard/caja"
             className="bg-accent text-white p-4 rounded-lg hover:bg-yellow-600 transition-colors text-center flex flex-col items-center justify-center space-y-2"
           >
             <DollarSign className="h-6 w-6" />

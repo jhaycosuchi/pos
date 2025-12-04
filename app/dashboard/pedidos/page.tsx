@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getDb } from '../../../lib/db';
 import {
   Plus,
@@ -32,12 +34,11 @@ async function getPedidos(): Promise<Pedido[]> {
     SELECT
       p.id,
       p.numero_pedido,
-      p.mesa,
-      p.cliente_nombre,
-      p.tipo_entrega,
+      p.mesa_numero as mesa,
+      CASE WHEN p.es_para_llevar = 1 THEN 'llevar' ELSE 'mesa' END as tipo_entrega,
       p.estado,
       p.total,
-      p.fecha,
+      p.creado_en as fecha,
       p.creado_en
     FROM pedidos p
     ORDER BY p.creado_en DESC
@@ -55,13 +56,13 @@ async function getEstadisticasPedidos() {
   const totalHoy = db.prepare(`
     SELECT COUNT(*) as count, SUM(total) as total
     FROM pedidos
-    WHERE date(fecha) = date('now')
+    WHERE date(creado_en) = date('now')
   `).get();
 
   const porEstado = db.prepare(`
     SELECT estado, COUNT(*) as count
     FROM pedidos
-    WHERE date(fecha) = date('now')
+    WHERE date(creado_en) = date('now')
     GROUP BY estado
   `).all();
 

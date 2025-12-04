@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getDb } from '../../../lib/db';
 import {
   BarChart3,
@@ -41,13 +43,13 @@ async function getReportesVentas(periodo: string = '30'): Promise<ReporteVentas[
 
   const ventas = db.prepare(`
     SELECT
-      date(fecha) as fecha,
+      date(creado_en) as fecha,
       SUM(total) as total_ventas,
       COUNT(*) as total_pedidos,
       AVG(total) as promedio_pedido
     FROM pedidos
-    WHERE fecha >= date('now', '-${dias} days') AND estado = 'entregado'
-    GROUP BY date(fecha)
+    WHERE creado_en >= date('now', '-${dias} days') AND estado = 'entregado'
+    GROUP BY date(creado_en)
     ORDER BY fecha DESC
   `).all();
 
@@ -61,14 +63,15 @@ async function getReportesProductos(periodo: string = '30'): Promise<ReporteProd
   const productos = db.prepare(`
     SELECT
       mi.nombre,
-      mi.categoria,
+      mc.nombre as categoria,
       SUM(dp.cantidad) as cantidad_vendida,
       SUM(dp.subtotal) as ingresos_generados
     FROM detalle_pedidos dp
-    JOIN menu_items mi ON dp.producto_id = mi.id
+    JOIN menu_items mi ON dp.menu_item_id = mi.id
+    LEFT JOIN menu_categorias mc ON mi.categoria_id = mc.id
     JOIN pedidos p ON dp.pedido_id = p.id
-    WHERE p.fecha >= date('now', '-${dias} days') AND p.estado = 'entregado'
-    GROUP BY mi.id, mi.nombre, mi.categoria
+    WHERE p.creado_en >= date('now', '-${dias} days') AND p.estado = 'entregado'
+    GROUP BY mi.id, mi.nombre, mc.nombre
     ORDER BY ingresos_generados DESC
     LIMIT 10
   `).all();
@@ -87,7 +90,7 @@ async function getReportesMeseros(periodo: string = '30'): Promise<ReporteMesero
       SUM(p.total) as ventas_totales,
       AVG(p.total) as promedio_pedido
     FROM usuarios u
-    LEFT JOIN pedidos p ON u.id = p.usuario_id AND p.fecha >= date('now', '-${dias} days') AND p.estado = 'entregado'
+    LEFT JOIN pedidos p ON u.id = p.usuario_id AND p.creado_en >= date('now', '-${dias} days') AND p.estado = 'entregado'
     WHERE u.rol = 'mesero'
     GROUP BY u.id, u.nombre
     ORDER BY ventas_totales DESC
@@ -108,7 +111,7 @@ async function getEstadisticasGenerales(periodo: string = '30') {
       COUNT(DISTINCT u.id) as meseros_activos
     FROM pedidos p
     JOIN usuarios u ON p.usuario_id = u.id
-    WHERE p.fecha >= date('now', '-${dias} days') AND p.estado = 'entregado'
+    WHERE p.creado_en >= date('now', '-${dias} days') AND p.estado = 'entregado'
   `).get();
 
   return stats;

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getDb } from '../../../lib/db';
 import {
   Plus,
@@ -10,9 +12,7 @@ import {
   Shield,
   ShieldCheck,
   Settings,
-  Key,
-  Mail,
-  Phone
+  Key
 } from 'lucide-react';
 
 interface Usuario {
@@ -22,9 +22,6 @@ interface Usuario {
   rol: string;
   estado: boolean;
   creado_en: string;
-  email?: string;
-  telefono?: string;
-  ultimo_acceso?: string;
 }
 
 async function getUsuarios(): Promise<Usuario[]> {
@@ -35,11 +32,8 @@ async function getUsuarios(): Promise<Usuario[]> {
       username,
       nombre,
       rol,
-      estado,
-      creado_en,
-      email,
-      telefono,
-      ultimo_acceso
+      activo as estado,
+      creado_en
     FROM usuarios
     ORDER BY rol, nombre
   `).all();
@@ -51,7 +45,7 @@ async function getEstadisticasUsuarios() {
   const db = getDb();
 
   const total = db.prepare('SELECT COUNT(*) as count FROM usuarios').get();
-  const activos = db.prepare('SELECT COUNT(*) as count FROM usuarios WHERE estado = 1').get();
+  const activos = db.prepare('SELECT COUNT(*) as count FROM usuarios WHERE activo = 1').get();
   const porRol = db.prepare('SELECT rol, COUNT(*) as count FROM usuarios GROUP BY rol').all();
 
   return {
@@ -217,13 +211,10 @@ export default async function UsuariosPage() {
                       Usuario
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Información
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Estado
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Último Acceso
+                      Creado
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Acciones
@@ -245,22 +236,6 @@ export default async function UsuariosPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 space-y-1">
-                          {usuario.email && (
-                            <div className="flex items-center gap-1">
-                              <Mail className="w-3 h-3" />
-                              {usuario.email}
-                            </div>
-                          )}
-                          {usuario.telefono && (
-                            <div className="flex items-center gap-1">
-                              <Phone className="w-3 h-3" />
-                              {usuario.telefono}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                           usuario.estado
                             ? 'bg-green-100 text-green-800'
@@ -270,10 +245,7 @@ export default async function UsuariosPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {usuario.ultimo_acceso ?
-                          new Date(usuario.ultimo_acceso).toLocaleDateString('es-ES') :
-                          'Nunca'
-                        }
+                        {new Date(usuario.creado_en).toLocaleDateString('es-ES')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center gap-2">
