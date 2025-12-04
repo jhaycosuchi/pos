@@ -139,6 +139,11 @@ export default function CajaPage() {
       return;
     }
 
+    if (!selectedCuenta?.id) {
+      alert('Error: No hay cuenta seleccionada');
+      return;
+    }
+
     try {
       const response = await fetch(API.MODIFICACIONES, {
         method: 'POST',
@@ -146,7 +151,7 @@ export default function CajaPage() {
         body: JSON.stringify({
           tipo: 'eliminacion',
           pedido_id: pedido.id,
-          cuenta_id: selectedCuenta?.id,
+          cuenta_id: selectedCuenta.id,
           solicitado_por: 'Caja',
           detalles: `Solicitud de eliminación del pedido ${pedido.numero_pedido}`,
         })
@@ -169,6 +174,11 @@ export default function CajaPage() {
   const handleGuardarEdicion = async () => {
     if (!pedidoAEditar) return;
 
+    if (!selectedCuenta?.id) {
+      alert('Error: No hay cuenta seleccionada');
+      return;
+    }
+
     try {
       const response = await fetch(API.MODIFICACIONES, {
         method: 'POST',
@@ -176,7 +186,7 @@ export default function CajaPage() {
         body: JSON.stringify({
           tipo: 'edicion',
           pedido_id: pedidoAEditar.id,
-          cuenta_id: selectedCuenta?.id,
+          cuenta_id: selectedCuenta.id,
           solicitado_por: 'Caja',
           detalles: `Solicitud de edición del pedido ${pedidoAEditar.numero_pedido}`,
           cambios: 'Edición de items del pedido'

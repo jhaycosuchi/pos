@@ -147,6 +147,41 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Si se aprueba y es eliminación, eliminar el pedido primero
+    if (estado === 'aprobado' && modificacion.tipo === 'eliminacion') {
+      try {
+        console.log(`Eliminando pedido ${modificacion.pedido_id}...`);
+        
+        // Usar transacción para mantener integridad
+        const deleteTransaction = db.transaction(() => {
+          // 1. Eliminar TODAS las modificaciones de este pedido
+          db.prepare('DELETE FROM modificaciones_pedidos WHERE pedido_id = ?').run(modificacion.pedido_id);
+          console.log(`Modificaciones del pedido eliminadas`);
+          
+          // 2. Eliminar items del pedido
+          db.prepare('DELETE FROM detalle_pedidos WHERE pedido_id = ?').run(modificacion.pedido_id);
+          console.log(`Items del pedido eliminados`);
+          
+          // 3. Eliminar el pedido
+          db.prepare('DELETE FROM pedidos WHERE id = ?').run(modificacion.pedido_id);
+          console.log(`Pedido eliminado`);
+        });
+        
+        deleteTransaction();
+        console.log(`Pedido ${modificacion.pedido_id} eliminado completamente`);
+        
+        return NextResponse.json({
+          message: `Pedido eliminado exitosamente`,
+          modificacion_id: id,
+          estado: 'aprobado',
+          autorizado_por
+        });
+      } catch (deleteError) {
+        console.error(`Error al eliminar pedido: ${deleteError}`);
+        throw deleteError;
+      }
+    }
+
     // Actualizar el estado de la modificación
     db.prepare(`
       UPDATE modificaciones_pedidos
@@ -155,13 +190,6 @@ export async function PUT(request: NextRequest) {
     `).run(estado, autorizado_por, id);
 
     console.log(`Modificación ${id} ${estado} por ${autorizado_por}`);
-
-    // Si se aprueba, aquí podríamos implementar la lógica para aplicar los cambios
-    // Por ahora solo cambiamos el estado
-    if (estado === 'aprobado') {
-      // TODO: Implementar lógica para aplicar cambios al pedido/cuenta
-      console.log(`Modificación aprobada - pendiente implementar aplicación de cambios`);
-    }
 
     return NextResponse.json({
       message: `Modificación ${estado} exitosamente`,
