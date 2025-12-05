@@ -9,6 +9,7 @@ interface PedidoHeaderProps {
   tiempo: string;
   colorTiempo: string;
   tiempoLimite?: number;
+  observaciones?: string;
 }
 
 export function PedidoHeader({
@@ -19,7 +20,8 @@ export function PedidoHeader({
   total,
   tiempo,
   colorTiempo,
-  tiempoLimite = 8
+  tiempoLimite = 8,
+  observaciones
 }: PedidoHeaderProps) {
   const tiempoDisplay = tiempo && tiempo !== '' ? tiempo : 'recién';
   
@@ -81,6 +83,14 @@ export function PedidoHeader({
         <p className="text-sm text-gray-600 font-semibold">👨‍🍳 {mesero_nombre}</p>
         <p className="text-lg font-bold text-green-700">💵 ${(total || 0).toFixed(2)}</p>
       </div>
+      
+      {/* Observaciones */}
+      {observaciones && String(observaciones).trim().length > 0 ? (
+        <div className="mt-2 p-2 bg-amber-50 border-2 border-amber-300 rounded-lg">
+          <p className="text-xs font-bold text-amber-800 mb-1">📝 INSTRUCCIONES ESPECIALES:</p>
+          <p className="text-sm text-amber-900 italic font-semibold">{String(observaciones).trim()}</p>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -4,6 +4,41 @@
 
 const MEXICO_TIMEZONE = 'America/Mexico_City';
 
+// Almacenar el desfase de tiempo entre cliente y servidor
+let clientServerOffset = 0;
+let offsetCalculated = false;
+
+/**
+ * Obtiene la hora actual sincronizada con el servidor
+ */
+export async function getNowSyncedWithServer(): Promise<Date> {
+  if (!offsetCalculated) {
+    try {
+      const response = await fetch('/pos/api/time');
+      const data = await response.json();
+      // data.timestamp es milisegundos desde epoch (UTC)
+      const serverTime = new Date(data.timestamp);
+      const clientTime = new Date();
+      clientServerOffset = serverTime.getTime() - clientTime.getTime();
+      offsetCalculated = true;
+      console.log('Hora sincronizada con servidor. Offset:', clientServerOffset, 'ms');
+    } catch (error) {
+      console.error('Error sincronizando hora con servidor:', error);
+      offsetCalculated = true; // No reintentar
+      clientServerOffset = 0; // Usar hora local como fallback
+    }
+  }
+  
+  return new Date(new Date().getTime() + clientServerOffset);
+}
+
+/**
+ * Obtiene la hora actual en el navegador (usar solo para display, NO para cálculos)
+ */
+function getNowClient(): Date {
+  return new Date();
+}
+
 /**
  * Convierte una fecha a formato legible en hora México
  */
@@ -110,13 +145,19 @@ export function calcularTiempoTranscurrido(dateStr: string): string {
 
 /**
  * Calcula los minutos transcurridos desde una fecha (para determinar colores)
+ * IMPORTANTE: Debe usarse con la hora sincronizada del servidor para evitar discrepancias
+ * por zona horaria del cliente
  */
-export function calcularMinutosTranscurridos(dateStr: string): number {
+export function calcularMinutosTranscurridos(dateStr: string, nowDate?: Date): number {
   try {
     if (!dateStr) return 0;
     
     let date: Date;
-    if (!dateStr.includes('Z') && !dateStr.includes('+') && !dateStr.includes('-', 10)) {
+    
+    // Soportar formato "2025-12-04 22:31:58" (con espacio en lugar de T)
+    if (dateStr.includes(' ') && !dateStr.includes('T') && !dateStr.includes('Z')) {
+      date = new Date(dateStr.replace(' ', 'T') + 'Z');
+    } else if (!dateStr.includes('Z') && !dateStr.includes('+') && !dateStr.includes('-', 10)) {
       date = new Date(dateStr + 'Z');
     } else {
       date = new Date(dateStr);
@@ -124,8 +165,11 @@ export function calcularMinutosTranscurridos(dateStr: string): number {
     
     if (isNaN(date.getTime())) return 0;
     
-    const ahora = new Date();
-    return Math.floor((ahora.getTime() - date.getTime()) / 60000);
+    // Usar hora sincronizada del servidor si se proporciona
+    // Si no, usar la hora actual (será del cliente, pero mejor que nada)
+    const ahora = nowDate || new Date();
+    const minutos = Math.floor((ahora.getTime() - date.getTime()) / 60000);
+    return Math.max(0, minutos); // Retornar 0 si el resultado es negativo
   } catch (error) {
     return 0;
   }

@@ -6,6 +6,8 @@ import { X, DollarSign, CreditCard, CheckCircle, Clock, Package, ArrowRight, Sho
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { API, PAGES, IMAGES, ESTADOS } from '@/lib/config';
+import ModificationDetailModal from '@/components/ModificationDetailModal';
+import PedidoDetailModal from '@/components/PedidoDetailModal';
 
 interface PedidoCuenta {
   id: number;
@@ -69,6 +71,11 @@ export default function CajaPage() {
   const [loadingDetalle, setLoadingDetalle] = useState(false);
   const [showEditarModal, setShowEditarModal] = useState(false);
   const [pedidoAEditar, setPedidoAEditar] = useState<PedidoCuenta | null>(null);
+  const [selectedModificacion, setSelectedModificacion] = useState<ModificacionPendiente | null>(null);
+  const [showModificationModal, setShowModificationModal] = useState(false);
+  const [showPedidoDetailModal, setShowPedidoDetailModal] = useState(false);
+  const [modalActionType, setModalActionType] = useState<'editar' | 'eliminar' | null>(null);
+  const [pedidoForDetailModal, setPedidoForDetailModal] = useState<PedidoCuenta | null>(null);
 
   const CAJA_PIN = '7933';
 
@@ -130,45 +137,51 @@ export default function CajaPage() {
   };
 
   const handleEditarPedido = (pedido: PedidoCuenta) => {
-    setPedidoAEditar(pedido);
-    setShowEditarModal(true);
+    setPedidoForDetailModal(pedido);
+    setModalActionType('editar');
+    setShowPedidoDetailModal(true);
   };
 
-  const handleEliminarPedido = async (pedido: PedidoCuenta) => {
-    if (!confirm(`¿Estás seguro de que quieres solicitar la eliminación del pedido ${pedido.numero_pedido}?`)) {
-      return;
+  const handleEliminarPedido = (pedido: PedidoCuenta) => {
+    setPedidoForDetailModal(pedido);
+    setModalActionType('eliminar');
+    setShowPedidoDetailModal(true);
+  };
+
+  const handleSubmitModification = async (actionType: 'editar' | 'eliminar') => {
+    if (!pedidoForDetailModal || !selectedCuenta?.id) {
+      throw new Error('No hay pedido o cuenta seleccionada');
     }
 
-    if (!selectedCuenta?.id) {
-      alert('Error: No hay cuenta seleccionada');
-      return;
+    const response = await fetch(API.MODIFICACIONES, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tipo: actionType === 'editar' ? 'edicion' : 'eliminacion',
+        pedido_id: pedidoForDetailModal.id,
+        cuenta_id: selectedCuenta.id,
+        solicitado_por: 'Caja',
+        detalles: `Solicitud de ${actionType === 'editar' ? 'edición' : 'eliminación'} del pedido ${pedidoForDetailModal.numero_pedido}`,
+        cambios: actionType === 'editar' ? 'Edición de items del pedido' : 'Eliminación del pedido',
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al enviar la solicitud');
     }
 
-    try {
-      const response = await fetch(API.MODIFICACIONES, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo: 'eliminacion',
-          pedido_id: pedido.id,
-          cuenta_id: selectedCuenta.id,
-          solicitado_por: 'Caja',
-          detalles: `Solicitud de eliminación del pedido ${pedido.numero_pedido}`,
-        })
-      });
-
-      if (response.ok) {
-        setSuccessMessage('✅ Petición de eliminación enviada');
-        setShowSuccess(true);
-        setTimeout(() => {
-          setShowSuccess(false);
-          fetchData();
-        }, 2000);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error al procesar la petición');
-    }
+    setSuccessMessage(
+      `✅ Petición de ${actionType === 'editar' ? 'edición' : 'eliminación'} enviada`
+    );
+    setShowSuccess(true);
+    
+    setTimeout(() => {
+      setShowSuccess(false);
+      setPedidoForDetailModal(null);
+      setModalActionType(null);
+      setShowPedidoDetailModal(false);
+      fetchData();
+    }, 2000);
   };
 
   const handleGuardarEdicion = async () => {
@@ -524,7 +537,11 @@ export default function CajaPage() {
                     key={mod.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-gradient-to-br from-red-800/50 to-red-900/50 border-2 border-red-600/50 rounded-xl p-5 shadow-lg"
+                    onClick={() => {
+                      setSelectedModificacion(mod);
+                      setShowModificationModal(true);
+                    }}
+                    className="bg-gradient-to-br from-red-800/50 to-red-900/50 border-2 border-red-600/50 rounded-xl p-5 shadow-lg cursor-pointer hover:from-red-800/60 hover:to-red-900/60 transition-all hover:border-red-600 hover:shadow-xl"
                   >
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-lg font-bold text-white">{mod.tipo === 'edicion' ? '✏️ Editar' : '🗑️ Eliminar'}</span>
@@ -532,20 +549,7 @@ export default function CajaPage() {
                     </div>
                     <p className="text-sm text-white/70 mb-2">Pedido: {mod.pedido_numero}</p>
                     <p className="text-sm text-white/70 mb-4">Cuenta: {mod.cuenta_numero}</p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleModificacion(mod.id, true, 'Caja')}
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg font-bold transition-colors text-sm"
-                      >
-                        ✅ Aprobar
-                      </button>
-                      <button
-                        onClick={() => handleModificacion(mod.id, false, 'Caja')}
-                        className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg font-bold transition-colors text-sm"
-                      >
-                        ❌ Rechazar
-                      </button>
-                    </div>
+                    <p className="text-xs text-gray-400">👆 Toca para ver detalles</p>
                   </motion.div>
                 ))}
               </div>
@@ -879,6 +883,37 @@ export default function CajaPage() {
           </>
         )}
       </AnimatePresence>
+
+      {/* MODIFICATION DETAIL MODAL */}
+      <ModificationDetailModal
+        modificacion={selectedModificacion}
+        isOpen={showModificationModal}
+        onClose={() => {
+          setShowModificationModal(false);
+          setSelectedModificacion(null);
+        }}
+        onApprove={async (id) => {
+          await handleModificacion(id, true, 'Caja');
+        }}
+        onReject={async (id) => {
+          await handleModificacion(id, false, 'Caja');
+        }}
+      />
+
+      {/* PEDIDO DETAIL MODAL FOR EDIT/DELETE REQUESTS */}
+      <PedidoDetailModal
+        pedido={pedidoForDetailModal}
+        isOpen={showPedidoDetailModal}
+        onClose={() => {
+          setShowPedidoDetailModal(false);
+          setPedidoForDetailModal(null);
+          setModalActionType(null);
+        }}
+        onConfirm={handleSubmitModification}
+        actionType={modalActionType}
+        cuentaNumero={selectedCuenta?.numero_cuenta}
+        mesaNumero={selectedCuenta?.mesa_numero}
+      />
     </div>
   );
 }

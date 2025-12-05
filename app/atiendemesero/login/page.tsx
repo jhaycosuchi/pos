@@ -55,37 +55,38 @@ export default function AtiendemeseroLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-3 sm:p-4">
       {/* Logo y Título */}
-      <div className="text-center mb-12">
-        <div className="flex items-center justify-center gap-3 mb-4">
+      <div className="text-center mb-8 sm:mb-12">
+        <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4">
           <Image 
             src={IMAGES.LOGO}
             alt="Logo" 
-            width={60} 
-            height={60}
+            width={48}
+            height={48}
+            className="sm:w-[60px] sm:h-[60px]"
           />
-          <h1 className="text-white font-bold text-5xl">Mazuhi</h1>
+          <h1 className="text-white font-bold text-3xl sm:text-5xl">Mazuhi</h1>
         </div>
-        <p className="text-gray-400 text-lg">Modo Mesero</p>
+        <p className="text-gray-400 text-sm sm:text-lg">Modo Mesero</p>
       </div>
 
       {/* Form */}
       <form
         onSubmit={handleLogin}
-        className="w-full max-w-md bg-gray-800 rounded-2xl shadow-2xl p-8 space-y-6 border border-gray-700"
+        className="w-full max-w-md bg-gray-800 rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-8 space-y-4 sm:space-y-6 border border-gray-700"
       >
-        <h2 className="text-white text-3xl font-bold text-center mb-8">Iniciar Sesión</h2>
+        <h2 className="text-white text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8">Iniciar Sesión</h2>
 
         {/* Username */}
         <div>
-          <label className="block text-gray-300 font-semibold mb-3 text-lg">Usuario</label>
+          <label className="block text-gray-300 font-semibold mb-2 sm:mb-3 text-sm sm:text-lg">Usuario</label>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Tu usuario"
-            className="w-full px-5 py-4 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-lg transition-all"
+            className="w-full px-3 sm:px-5 py-3 sm:py-4 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-sm sm:text-lg transition-all"
             disabled={loading}
             autoFocus
           />
@@ -93,22 +94,22 @@ export default function AtiendemeseroLoginPage() {
 
         {/* Password */}
         <div>
-          <label className="block text-gray-300 font-semibold mb-3 text-lg">Contraseña</label>
+          <label className="block text-gray-300 font-semibold mb-2 sm:mb-3 text-sm sm:text-lg">Contraseña</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Tu contraseña"
-            className="w-full px-5 py-4 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-lg transition-all"
+            className="w-full px-3 sm:px-5 py-3 sm:py-4 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-sm sm:text-lg transition-all"
             disabled={loading}
           />
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 flex items-start gap-3">
-            <AlertCircle className="h-6 w-6 text-red-500 flex-shrink-0 mt-0.5" />
-            <p className="text-red-400 font-semibold text-base">{error}</p>
+          <div className="bg-red-500/20 border border-red-500 rounded-lg p-3 sm:p-4 flex items-start gap-3">
+            <AlertCircle className="h-5 sm:h-6 w-5 sm:w-6 text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-red-400 font-semibold text-sm sm:text-base">{error}</p>
           </div>
         )}
 
@@ -116,16 +117,16 @@ export default function AtiendemeseroLoginPage() {
         <button
           type="submit"
           disabled={loading || !username || !password}
-          className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-4 rounded-lg transition-all flex items-center justify-center gap-2 text-lg shadow-lg hover:shadow-xl disabled:shadow-none mt-8"
+          className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 sm:py-4 rounded-lg transition-all flex items-center justify-center gap-2 text-sm sm:text-lg shadow-lg hover:shadow-xl disabled:shadow-none mt-6 sm:mt-8"
         >
-          <LogIn className="h-6 w-6" />
+          <LogIn className="h-5 sm:h-6 w-5 sm:w-6" />
           {loading ? 'Iniciando...' : 'Iniciar Sesión'}
         </button>
       </form>
 
       {/* Footer */}
-      <div className="text-center mt-12">
-        <p className="text-gray-500 text-sm font-medium">
+      <div className="text-center mt-8 sm:mt-12">
+        <p className="text-gray-500 text-xs sm:text-sm font-medium">
           Versión 1.0 • Optimizado para móvil y tablet
         </p>
       </div>

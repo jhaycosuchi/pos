@@ -52,3 +52,46 @@ export async function POST(request: NextRequest) {
     return ResponseHandler.internalError('Error al crear cuenta', error);
   }
 }
+
+// PATCH - Actualizar cuenta (cambiar estado, etc)
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    // Validar que se proporciona el ID
+    if (!body.id) {
+      return ResponseHandler.badRequest('Se requiere el ID de la cuenta');
+    }
+
+    // Construir objeto de actualización
+    const updateData: any = {};
+    if (body.estado) updateData.estado = body.estado;
+    if (body.total !== undefined) updateData.total = body.total;
+    if (body.mesa_numero) updateData.mesa_numero = body.mesa_numero;
+    if (body.mesero_id) updateData.mesero_id = body.mesero_id;
+
+    // Actualizar en la BD
+    const { getDb } = await import('@/lib/db');
+    const db = getDb();
+
+    const updateFields = Object.keys(updateData).map(key => `${key} = ?`).join(', ');
+    const updateValues = Object.values(updateData);
+    
+    if (updateFields.length === 0) {
+      return ResponseHandler.badRequest('No hay campos para actualizar');
+    }
+
+    const stmt = db.prepare(
+      `UPDATE cuentas SET ${updateFields}, actualizado_en = CURRENT_TIMESTAMP WHERE id = ?`
+    );
+    
+    stmt.run(...updateValues, body.id);
+
+    // Obtener la cuenta actualizada
+    const updatedCuenta = db.prepare('SELECT * FROM cuentas WHERE id = ?').get(body.id);
+
+    return ResponseHandler.success(updatedCuenta, 'Cuenta actualizada exitosamente');
+  } catch (error) {
+    return ResponseHandler.internalError('Error al actualizar cuenta', error);
+  }
+}

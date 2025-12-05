@@ -135,49 +135,49 @@ export default function FinalizarMesaPage() {
     return (
       <div className="min-h-screen bg-gray-900">
         {/* Header */}
-        <div className="sticky top-0 z-40 bg-gray-800 text-white p-4 shadow-lg border-b border-gray-700">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
+        <div className="sticky top-0 z-40 bg-gray-800 text-white p-3 sm:p-4 shadow-lg border-b border-gray-700">
+          <div className="w-full flex justify-between items-center">
             <button
               onClick={() => router.push(PAGES.ATIENDEMESERO)}
-              className="flex items-center gap-2 hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors"
+              className="flex items-center gap-2 hover:bg-gray-700 px-2 sm:px-3 py-2 rounded-lg transition-colors text-xs sm:text-base"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-4 sm:h-5 w-4 sm:w-5" />
               Volver
             </button>
-            <h1 className="font-bold text-lg">Finalizar Mesas</h1>
+            <h1 className="font-bold text-sm sm:text-lg">Finalizar Mesas</h1>
             <div className="w-8"></div>
           </div>
         </div>
 
         {/* Lista de mesas listas */}
-        <div className="max-w-6xl mx-auto p-4 min-h-[calc(100vh-80px)]">
+        <div className="w-full p-3 sm:p-4 min-h-[calc(100vh-80px)]">
           {pedidos.length === 0 ? (
-            <div className="bg-gray-800 rounded-lg shadow-lg p-12 text-center border border-gray-700">
-              <AlertCircle className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-              <p className="text-gray-300 text-lg">No hay mesas listas para cobrar</p>
+            <div className="bg-gray-800 rounded-lg shadow-lg p-8 sm:p-12 text-center border border-gray-700">
+              <AlertCircle className="h-8 sm:h-12 w-8 sm:w-12 text-gray-500 mx-auto mb-4" />
+              <p className="text-gray-300 text-sm sm:text-lg">No hay mesas listas para cobrar</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
               {pedidos.map(pedido => (
                 <button
                   key={pedido.id}
                   onClick={() => setMesaSeleccionada(pedido)}
-                  className="bg-gray-800 rounded-lg shadow-lg p-6 hover:bg-gray-750 hover:shadow-xl hover:scale-105 transition-all text-left border border-gray-700 hover:border-orange-500"
+                  className="bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6 hover:bg-gray-750 hover:shadow-xl hover:scale-105 transition-all text-left border border-gray-700 hover:border-orange-500"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <p className="text-4xl font-bold text-white">
+                      <p className="text-3xl sm:text-4xl font-bold text-white">
                         {pedido.mesa_numero}
                       </p>
-                      <p className="text-sm text-gray-400">
+                      <p className="text-xs sm:text-sm text-gray-400">
                         {pedido.comensales} comensales
                       </p>
                     </div>
-                    <span className="bg-green-600/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold">
+                    <span className="bg-green-600/20 text-green-400 px-2 sm:px-3 py-1 rounded-full text-xs font-bold">
                       Listo
                     </span>
                   </div>
-                  <p className="text-lg font-bold text-orange-400">
+                  <p className="text-base sm:text-lg font-bold text-orange-400">
                     ${pedido.total.toFixed(2)}
                   </p>
                   <p className="text-xs text-gray-400 mt-2">

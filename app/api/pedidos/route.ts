@@ -105,10 +105,11 @@ export async function POST(request: NextRequest) {
       items,
       total,
       estado = 'pendiente',
-      cuenta_id: providedCuentaId
+      cuenta_id: providedCuentaId,
+      observaciones
     } = await request.json();
 
-    console.log('Datos recibidos:', { mesero_id, mesa_numero, comensales, es_para_llevar, items, total, estado });
+    console.log('Datos recibidos:', { mesero_id, mesa_numero, comensales, es_para_llevar, items, total, estado, observaciones });
 
     if (!mesero_id || !mesa_numero || !items || items.length === 0) {
       return NextResponse.json(
@@ -132,12 +133,14 @@ export async function POST(request: NextRequest) {
 
     console.log('Creando pedido con número:', numeroPedido);
 
-    // Para pedidos de mesa, obtener o crear cuenta
+    // TODOS los pedidos necesitan una cuenta (llevar o comer aquí)
     let cuentaId: number | null = providedCuentaId || null;
-    if (!es_para_llevar && !cuentaId) {
+    if (!cuentaId) {
       try {
+        // Usar mesa_numero como identificador único incluso para "para llevar"
+        // Si es para llevar, mesa_numero será "PARA_LLEVAR"
         cuentaId = getOrCreateCuenta(db, mesa_numero, mesero_id);
-        console.log('Cuenta ID creada:', cuentaId);
+        console.log('Cuenta ID creada/obtenida:', cuentaId);
       } catch (error) {
         console.error('Error creando cuenta:', error);
         throw new Error(`No se pudo crear la cuenta: ${error}`);
@@ -146,9 +149,9 @@ export async function POST(request: NextRequest) {
 
     // Crear pedido - usuario_id y mesero_id son el mismo en este caso
     const result = db.prepare(
-      `INSERT INTO pedidos (numero_pedido, usuario_id, mesa_numero, comensales, es_para_llevar, cuenta_id, total, estado, mesero_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(numeroPedido, mesero_id, mesa_numero, comensales || 1, es_para_llevar ? 1 : 0, cuentaId, total, estado, mesero_id);
+      `INSERT INTO pedidos (numero_pedido, usuario_id, mesa_numero, comensales, es_para_llevar, cuenta_id, total, estado, mesero_id, observaciones)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(numeroPedido, mesero_id, mesa_numero, comensales || 1, es_para_llevar ? 1 : 0, cuentaId, total, estado, mesero_id, observaciones || null);
 
     const pedidoId = result.lastInsertRowid;
     console.log('Pedido creado con ID:', pedidoId);
@@ -156,12 +159,25 @@ export async function POST(request: NextRequest) {
     // Insertar items del pedido
     for (const item of items) {
       console.log('Insertando item:', item);
+      
+      // Validar que menu_item_id existe si se proporciona
+      let validMenuItemId = item.menu_item_id || null;
+      if (validMenuItemId) {
+        const menuItemExists = db.prepare('SELECT id FROM menu_items WHERE id = ?').get(validMenuItemId);
+        if (!menuItemExists) {
+          return NextResponse.json(
+            { message: `El item de menú con ID ${validMenuItemId} no existe` },
+            { status: 400 }
+          );
+        }
+      }
+      
       db.prepare(
         `INSERT INTO detalle_pedidos (pedido_id, menu_item_id, producto_nombre, cantidad, especificaciones, notas, precio_unitario, subtotal)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(
         pedidoId,
-        item.menu_item_id || 1,
+        validMenuItemId,
         item.producto_nombre,
         item.cantidad,
         item.especificaciones || '',
@@ -173,8 +189,12 @@ export async function POST(request: NextRequest) {
 
     // Marcar la mesa como ocupada si no es para llevar
     if (!es_para_llevar && mesa_numero) {
-      db.prepare('UPDATE mesas SET estado = ? WHERE numero = ?').run('ocupada', mesa_numero);
-      console.log(`Mesa ${mesa_numero} marcada como ocupada`);
+      try {
+        db.prepare('UPDATE mesas SET estado = ? WHERE numero = ?').run('ocupada', mesa_numero);
+        console.log(`Mesa ${mesa_numero} marcada como ocupada`);
+      } catch (err) {
+        console.log('Tabla mesas no disponible, continuando...');
+      }
     }
 
     // Actualizar total de la cuenta si existe
@@ -225,7 +245,7 @@ export async function GET(request: NextRequest) {
     const estado = url.searchParams.get('estado');
 
     let query = `
-      SELECT p.*, u.nombre as mesero_nombre
+      SELECT p.id, p.numero_pedido, p.mesa_numero, p.es_para_llevar, p.estado, p.creado_en, p.total, p.observaciones, u.nombre as mesero_nombre
       FROM pedidos p
       LEFT JOIN usuarios u ON p.mesero_id = u.id
       WHERE 1=1
@@ -249,7 +269,7 @@ export async function GET(request: NextRequest) {
     const pedidos = db.prepare(query).all(...params);
 
     // Obtener items de cada pedido
-    const pedidosConItems = pedidos.map((pedido) => {
+    const pedidosConItems = pedidos.map((pedido: any) => {
       const items = db.prepare(
         `SELECT dp.*, COALESCE(dp.producto_nombre, mi.nombre, 'Producto sin nombre') as nombre_final
          FROM detalle_pedidos dp
@@ -258,7 +278,7 @@ export async function GET(request: NextRequest) {
       ).all(pedido.id);
       return {
         ...pedido,
-        items: items.map(item => ({
+        items: items.map((item: any) => ({
           id: item.id,
           nombre: item.nombre_final,
           cantidad: item.cantidad,

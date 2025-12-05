@@ -22,6 +22,11 @@ export default function SeleccionMesas() {
 
   useEffect(() => {
     cargarMesas();
+    
+    // Refresco automático cada 5 segundos para detectar cambios en estado de mesas
+    const intervalo = setInterval(cargarMesas, 5000);
+    
+    return () => clearInterval(intervalo);
   }, []);
 
   const cargarMesas = async () => {
@@ -92,18 +97,18 @@ export default function SeleccionMesas() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900/20 to-gray-900 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900/20 to-gray-900 p-2 sm:p-3 md:p-4 lg:p-6">
       {/* Header */}
-      <div className="max-w-7xl mx-auto mb-6">
-        <div className="bg-gray-800/80 backdrop-blur-md rounded-2xl shadow-2xl p-6 border border-gray-700">
-          <div className="flex items-center justify-between">
+      <div className="w-full mb-3 sm:mb-4 md:mb-6">
+        <div className="bg-gray-800/80 backdrop-blur-md rounded-lg sm:rounded-xl md:rounded-2xl shadow-2xl p-3 sm:p-4 md:p-6 border border-gray-700">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
             <div>
-              <h1 className="text-4xl font-bold text-white mb-2">🍽️ Seleccionar Mesa</h1>
-              <p className="text-blue-400 text-lg font-medium">Elige una mesa para tomar el pedido</p>
+              <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-white mb-0.5 sm:mb-2">🍽️ Mesas</h1>
+              <p className="text-blue-400 text-xs sm:text-sm md:text-lg font-medium">Elige una mesa</p>
             </div>
             <button
               onClick={() => router.push('/atiendemesero')}
-              className="px-8 py-4 bg-gradient-to-r from-gray-700 to-gray-600 text-white rounded-xl hover:from-gray-600 hover:to-gray-500 transition-all transform hover:scale-105 font-bold text-lg shadow-lg"
+              className="w-full sm:w-auto px-3 sm:px-6 md:px-8 py-2 sm:py-3 md:py-4 bg-gradient-to-r from-gray-700 to-gray-600 text-white rounded-lg sm:rounded-xl md:rounded-xl hover:from-gray-600 hover:to-gray-500 transition-all transform hover:scale-105 font-bold text-xs sm:text-sm md:text-lg shadow-lg"
             >
               ← Volver
             </button>
@@ -112,21 +117,21 @@ export default function SeleccionMesas() {
       </div>
 
       {/* Leyenda */}
-      <div className="max-w-7xl mx-auto mb-8">
-        <div className="bg-gray-800/60 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-gray-700">
-          <h3 className="text-lg font-bold text-white mb-4">Estado de las mesas:</h3>
-          <div className="flex flex-wrap gap-6">
+      <div className="w-full mb-3 sm:mb-4 md:mb-8">
+        <div className="bg-gray-800/60 backdrop-blur-md rounded-lg sm:rounded-xl md:rounded-2xl shadow-xl p-3 sm:p-4 md:p-6 border border-gray-700">
+          <h3 className="text-xs sm:text-sm md:text-lg font-bold text-white mb-2 sm:mb-4">Estado:</h3>
+          <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-6">
             <div className="flex items-center">
-              <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg mr-3 shadow-lg shadow-green-500/50"></div>
-              <span className="text-gray-300 font-medium">Libre</span>
+              <div className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 bg-gradient-to-br from-green-500 to-emerald-600 rounded mr-2 sm:mr-3 shadow-lg shadow-green-500/50"></div>
+              <span className="text-gray-300 font-medium text-xs sm:text-sm md:text-base">Libre</span>
             </div>
             <div className="flex items-center">
-              <div className="w-6 h-6 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg mr-3 shadow-lg shadow-orange-500/50"></div>
-              <span className="text-gray-300 font-medium">Ocupada</span>
+              <div className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 bg-gradient-to-br from-orange-500 to-red-500 rounded mr-2 sm:mr-3 shadow-lg shadow-orange-500/50"></div>
+              <span className="text-gray-300 font-medium text-xs sm:text-sm md:text-base">Ocupada</span>
             </div>
             <div className="flex items-center">
-              <div className="w-6 h-6 bg-gradient-to-br from-red-600 to-red-800 rounded-lg mr-3 shadow-lg shadow-red-500/50"></div>
-              <span className="text-gray-300 font-medium">Reservada</span>
+              <div className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 bg-gradient-to-br from-red-600 to-red-800 rounded mr-2 sm:mr-3 shadow-lg shadow-red-500/50"></div>
+              <span className="text-gray-300 font-medium text-xs sm:text-sm md:text-base">Reservada</span>
             </div>
           </div>
         </div>
@@ -141,29 +146,30 @@ export default function SeleccionMesas() {
             <p className="text-gray-500 text-lg">Contacta al administrador para configurar las mesas</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 max-w-7xl mx-auto">
             {mesas.map((mesa) => (
               <button
                 key={mesa.numero}
                 onClick={() => handleSeleccionarMesa(mesa.numero)}
-                className={`${getEstadoColor(mesa.estado)} text-white rounded-2xl shadow-2xl transition-all transform hover:scale-110 hover:-translate-y-2 p-10 flex flex-col items-center justify-center relative overflow-hidden group border-2`}
+                disabled={mesa.estado !== 'libre'}
+                className={`${getEstadoColor(mesa.estado)} text-white rounded-lg md:rounded-xl shadow-lg md:shadow-2xl transition-all transform hover:scale-105 md:hover:scale-110 hover:-translate-y-1 md:hover:-translate-y-2 p-2 sm:p-3 md:p-4 lg:p-6 flex flex-col items-center justify-center relative overflow-hidden group border-2 disabled:cursor-not-allowed`}
               >
                 {/* Background glow effect */}
                 <div className={`absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity ${
                   mesa.estado === 'libre' ? 'bg-green-400' : mesa.estado === 'ocupada' ? 'bg-orange-400' : 'bg-red-400'
                 }`}></div>
                 
-                <div className="text-7xl font-black mb-3 relative z-10 drop-shadow-2xl">{mesa.numero}</div>
-                <div className="text-xl font-bold mb-2 relative z-10">{getEstadoTexto(mesa.estado)}</div>
+                <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-0.5 sm:mb-1 md:mb-2 relative z-10 drop-shadow-2xl">{mesa.numero}</div>
+                <div className="text-xs sm:text-sm md:text-base lg:text-lg font-bold mb-0.5 sm:mb-1 md:mb-2 relative z-10">{getEstadoTexto(mesa.estado)}</div>
                 {mesa.tiempo_ocupada && mesa.tiempo_ocupada > 0 && (
-                  <div className="text-sm opacity-90 relative z-10 bg-black/30 px-4 py-2 rounded-lg">
+                  <div className="text-xs opacity-90 relative z-10 bg-black/30 px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 md:py-1.5 rounded text-xs sm:text-xs md:text-sm">
                     ⏱️ {Math.floor(mesa.tiempo_ocupada / 60)}h {mesa.tiempo_ocupada % 60}m
                   </div>
                 )}
                 
                 {/* Arrow indicator on hover */}
-                <div className="absolute bottom-4 opacity-0 group-hover:opacity-100 transition-all transform translate-y-4 group-hover:translate-y-0">
-                  <span className="text-2xl">→</span>
+                <div className="absolute bottom-1 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
+                  <span className="text-sm md:text-lg">→</span>
                 </div>
               </button>
             ))}

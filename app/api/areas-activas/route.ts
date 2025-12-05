@@ -1,17 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../lib/db';
+import { VISIBLE_IN, ACCOUNT_STATES } from '../../../lib/statesConfig';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {
     const db = getDb();
-    
-    // Obtener fecha de hoy en zona horaria de México
-    const now = new Date();
-    const mexicoDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Mexico_City' }));
-    const today = mexicoDate.toISOString().split('T')[0];
 
-    // Obtener cuentas abiertas del día (mesas con pedidos activos)
-    const cuentasAbiertas = db.prepare(`
+    console.log('AreasActivas GET - Fetching all active accounts');
+
+    // Usar la configuración centralizada para filtrar estados
+    // Solo mostrar cuentas abierta y cerrada (NO cobradas)
+    const validStates = VISIBLE_IN.AREAS_ACTIVAS;
+    console.log('validStates:', validStates);
+    
+    const stateFilter = validStates.map(s => `'${s}'`).join(',');
+    console.log('stateFilter:', stateFilter);
+
+    const query = `
       SELECT
         c.id,
         c.numero_cuenta,
@@ -23,71 +31,55 @@ export async function GET(request: NextRequest) {
         m.capacidad,
         'cuenta' as tipo,
         (SELECT COUNT(*) FROM pedidos WHERE cuenta_id = c.id) as total_pedidos,
-        (SELECT SUM(total) FROM pedidos WHERE cuenta_id = c.id) as total_calculado
+        (SELECT SUM(total) FROM pedidos WHERE cuenta_id = c.id) as total_calculado,
+        CASE WHEN c.mesa_numero = 'PARA_LLEVAR' THEN 1 ELSE 0 END as es_para_llevar
       FROM cuentas c
       LEFT JOIN mesas m ON c.mesa_numero = m.numero
-      WHERE c.estado IN ('abierta', 'cerrada')
-        AND DATE(c.fecha_apertura) = DATE(?)
-      ORDER BY c.fecha_apertura DESC
-    `).all(today);
+      WHERE c.estado IN (${stateFilter})
+      ORDER BY CASE WHEN c.mesa_numero = 'PARA_LLEVAR' THEN 1 ELSE 0 END DESC, c.fecha_apertura DESC
+    `;
+    
+    console.log('Query:', query);
 
-    // Obtener pedidos para llevar pendientes (sin cuenta)
-    const pedidosParaLlevar = db.prepare(`
-      SELECT
-        p.id,
-        p.numero_pedido,
-        p.mesa_numero,
-        NULL as capacidad,
-        p.estado,
-        p.mesero_id,
-        'pedido_llevar' as tipo,
-        p.numero_pedido as numero_cuenta,
-        p.es_para_llevar,
-        p.total,
-        p.creado_en,
-        0 as total_pedidos
-      FROM pedidos p
-      WHERE p.es_para_llevar = 1 
-        AND p.estado IN ('pendiente', 'preparando', 'listo')
-        AND p.cuenta_id IS NULL
-        AND DATE(p.creado_en) = DATE(?)
-      ORDER BY p.creado_en DESC
-    `).all(today);
+    const cuentasAbiertas = db.prepare(query).all();
+
+    console.log('Cuentas encontradas:', cuentasAbiertas.length, cuentasAbiertas);
 
     // Combinar y formatear resultados
-    const areasActivas = [
-      ...cuentasAbiertas.map((c: any) => ({
-        id: c.id,
-        mesa_numero: c.mesa_numero,
-        capacidad: c.capacidad,
-        estado: c.estado,
-        mesero_id: c.mesero_id,
-        tipo: 'cuenta',
-        numero_cuenta: c.numero_cuenta,
-        total: c.total_calculado || c.total || 0,
-        total_pedidos: c.total_pedidos,
-        creado_en: c.creado_en
-      })),
-      ...pedidosParaLlevar.map((p: any) => ({
-        id: p.id,
-        mesa_numero: p.mesa_numero,
-        capacidad: null,
-        estado: p.estado,
-        mesero_id: p.mesero_id,
-        tipo: 'pedido_llevar',
-        numero_pedido: p.numero_pedido,
-        es_para_llevar: p.es_para_llevar,
-        total: p.total,
-        creado_en: p.creado_en
-      }))
-    ];
+    const areasActivas = cuentasAbiertas.map((c: any) => ({
+      id: c.id,
+      mesa_numero: c.mesa_numero,
+      capacidad: c.capacidad,
+      estado: c.estado,
+      mesero_id: c.mesero_id,
+      tipo: 'cuenta',
+      numero_cuenta: c.numero_cuenta,
+      total: c.total_calculado || c.total || 0,
+      total_pedidos: c.total_pedidos,
+      creado_en: c.creado_en,
+      es_para_llevar: c.es_para_llevar
+    }));
 
-    return NextResponse.json(areasActivas);
+    console.log('Total cuentas en areas activas:', areasActivas.length);
+    return NextResponse.json(areasActivas, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
   } catch (error) {
     console.error('Error fetching areas activas:', error);
     return NextResponse.json(
       { message: 'Error interno del servidor' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      }
     );
   }
 }

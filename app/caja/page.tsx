@@ -2,10 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, DollarSign, CreditCard, CheckCircle, Clock, Package, ArrowRight, ShoppingBag, Utensils, AlertCircle } from 'lucide-react';
+import { X, DollarSign, CreditCard, CheckCircle, Clock, Package, ArrowRight, ShoppingBag, Utensils, AlertCircle, Printer } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { API, PAGES, IMAGES, ESTADOS } from '@/lib/config';
+import { imprimirEnTérmica, imprimirViaBrowser } from '@/lib/thermal-printer';
+import PedidoDeleteDetailModal from '@/components/caja/PedidoDeleteDetailModal';
+import PedidoEditCompleteModal from '@/components/caja/PedidoEditCompleteModal';
+import ModificacionDetalleModal from '@/components/caja/ModificacionDetalleModal';
+import NotificacionesStack, { Notificacion } from '@/components/NotificacionesStack';
 
 interface PedidoCuenta {
   id: number;
@@ -69,6 +74,16 @@ export default function CajaPage() {
   const [loadingDetalle, setLoadingDetalle] = useState(false);
   const [showEditarModal, setShowEditarModal] = useState(false);
   const [pedidoAEditar, setPedidoAEditar] = useState<PedidoCuenta | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [pedidoAEliminar, setPedidoAEliminar] = useState<PedidoCuenta | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+  const [showModificacionModal, setShowModificacionModal] = useState(false);
+  const [modificacionSeleccionada, setModificacionSeleccionada] = useState<ModificacionPendiente | null>(null);
+  const [procesandoModificacion, setProcesandoModificacion] = useState(false);
+
+  // Notificaciones
+  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
+  const [ultimaModificacion, setUltimaModificacion] = useState<number>(0);
 
   const CAJA_PIN = '7933';
 
@@ -134,21 +149,25 @@ export default function CajaPage() {
     setShowEditarModal(true);
   };
 
-  const handleEliminarPedido = async (pedido: PedidoCuenta) => {
-    if (!confirm(`¿Estás seguro de que quieres solicitar la eliminación del pedido ${pedido.numero_pedido}?`)) {
-      return;
-    }
+  const handleEliminarPedido = (pedido: PedidoCuenta) => {
+    setPedidoAEliminar(pedido);
+    setShowDeleteModal(true);
+  };
 
+  const confirmarEliminarPedido = async () => {
+    if (!pedidoAEliminar || !selectedCuenta) return;
+
+    setEliminando(true);
     try {
       const response = await fetch(API.MODIFICACIONES, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tipo: 'eliminacion',
-          pedido_id: pedido.id,
-          cuenta_id: selectedCuenta?.id,
+          pedido_id: pedidoAEliminar.id,
+          cuenta_id: selectedCuenta.id,
           solicitado_por: 'Caja',
-          detalles: `Solicitud de eliminación del pedido ${pedido.numero_pedido}`,
+          detalles: `Solicitud de eliminación del pedido ${pedidoAEliminar.numero_pedido}`,
         })
       });
 
@@ -163,28 +182,29 @@ export default function CajaPage() {
     } catch (error) {
       console.error('Error:', error);
       alert('Error al procesar la petición');
+    } finally {
+      setEliminando(false);
+      setShowDeleteModal(false);
+      setPedidoAEliminar(null);
     }
   };
 
-  const handleGuardarEdicion = async () => {
+  const handleGuardarEdicion = async (editedData: any) => {
     if (!pedidoAEditar) return;
 
     try {
-      const response = await fetch(API.MODIFICACIONES, {
-        method: 'POST',
+      // Actualizar directamente en la BD via API
+      const response = await fetch(`${API.PEDIDOS}/${pedidoAEditar.id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tipo: 'edicion',
-          pedido_id: pedidoAEditar.id,
-          cuenta_id: selectedCuenta?.id,
-          solicitado_por: 'Caja',
-          detalles: `Solicitud de edición del pedido ${pedidoAEditar.numero_pedido}`,
-          cambios: 'Edición de items del pedido'
+          items: editedData.items,
+          observaciones: editedData.observaciones
         })
       });
 
       if (response.ok) {
-        setSuccessMessage('✅ Petición de edición enviada');
+        setSuccessMessage('✅ Pedido actualizado correctamente');
         setShowSuccess(true);
         setTimeout(() => {
           setShowSuccess(false);
@@ -192,10 +212,75 @@ export default function CajaPage() {
           setPedidoAEditar(null);
           fetchData();
         }, 2000);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.message || 'No se pudo actualizar el pedido'}`);
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al procesar la petición');
+      alert('Error al actualizar el pedido');
+    }
+  };
+
+  const handleAprobarModificacion = async () => {
+    if (!modificacionSeleccionada) return;
+
+    setProcesandoModificacion(true);
+    try {
+      const response = await fetch(`${API.MODIFICACIONES}/${modificacionSeleccionada.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'aprobada' })
+      });
+
+      if (response.ok) {
+        setSuccessMessage('✅ Modificación aprobada');
+        setShowSuccess(true);
+        setTimeout(() => {
+          setShowSuccess(false);
+          setShowModificacionModal(false);
+          setModificacionSeleccionada(null);
+          fetchData();
+        }, 2000);
+      } else {
+        alert('Error al aprobar la modificación');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al procesar la aprobación');
+    } finally {
+      setProcesandoModificacion(false);
+    }
+  };
+
+  const handleRechazarModificacion = async () => {
+    if (!modificacionSeleccionada) return;
+
+    setProcesandoModificacion(true);
+    try {
+      const response = await fetch(`${API.MODIFICACIONES}/${modificacionSeleccionada.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'rechazada' })
+      });
+
+      if (response.ok) {
+        setSuccessMessage('✅ Modificación rechazada');
+        setShowSuccess(true);
+        setTimeout(() => {
+          setShowSuccess(false);
+          setShowModificacionModal(false);
+          setModificacionSeleccionada(null);
+          fetchData();
+        }, 2000);
+      } else {
+        alert('Error al rechazar la modificación');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al procesar el rechazo');
+    } finally {
+      setProcesandoModificacion(false);
     }
   };
 
@@ -207,6 +292,50 @@ export default function CajaPage() {
       return () => clearInterval(interval);
     }
   }, [isAuthenticated]);
+
+  // Notificaciones de nuevas modificaciones
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const checkModificaciones = async () => {
+      try {
+        const response = await fetch(`${API.MODIFICACIONES}?estado=pendiente`);
+        if (response.ok) {
+          const modificaciones = await response.json() as any[];
+          
+          // Filtrar solo las nuevas modificaciones
+          modificaciones.forEach(mod => {
+            if (mod.id > ultimaModificacion && mod.tipo === 'edicion_completa') {
+              const id = `notif-mod-${mod.id}`;
+              if (!notificaciones.find(n => n.id === id)) {
+                addNotificacion({
+                  id,
+                  tipo: 'info',
+                  titulo: '📝 Nueva Modificación',
+                  mensaje: `${mod.mesero_nombre} solicita cambios en ${mod.pedido_numero} (Cuenta ${mod.cuenta_numero})`,
+                  duracion: 0, // Manual dismiss
+                });
+              }
+              setUltimaModificacion(Math.max(ultimaModificacion, mod.id));
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error checking new modificaciones:', error);
+      }
+    };
+
+    const interval = setInterval(checkModificaciones, 3000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, ultimaModificacion, notificaciones]);
+
+  const addNotificacion = (notif: Notificacion) => {
+    setNotificaciones(prev => [...prev, notif]);
+  };
+
+  const dismissNotificacion = (id: string) => {
+    setNotificaciones(prev => prev.filter(n => n.id !== id));
+  };
 
   const handleCobrarCuenta = async () => {
     if (!selectedCuenta || totalAmount <= 0 || !paymentMethod) return;
@@ -242,6 +371,53 @@ export default function CajaPage() {
     } catch (error) {
       console.error('Error cobrando cuenta:', error);
       alert('Error al cobrar cuenta');
+    }
+  };
+
+  const handleImprimirTicket = async () => {
+    if (!selectedCuenta) return;
+
+    try {
+      // Obtener fecha y hora actual
+      const now = new Date();
+      const fecha = now.toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      const hora = now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      // Preparar datos del ticket
+      const ticketData = {
+        numeroTicket: `${selectedCuenta.numero_cuenta}`,
+        nombreNegocio: 'MAZUHI',
+        mesa: selectedCuenta.mesa_numero ? `${selectedCuenta.mesa_numero}` : undefined,
+        mesero: selectedCuenta.mesero_nombre,
+        items: (selectedCuenta.pedidos || []).flatMap((pedido: any) =>
+          (pedido.items || []).map((item: any) => ({
+            nombre: item.nombre || 'Producto',
+            cantidad: item.cantidad || 1,
+            precio_unitario: item.precio_unitario || 0,
+            subtotal: (item.cantidad || 1) * (item.precio_unitario || 0),
+            notas: item.notas || ''
+          }))
+        ),
+        subtotal: selectedCuenta.total || 0,
+        total: selectedCuenta.total || 0,
+        fecha: fecha,
+        hora: hora,
+      };
+
+      // Intentar imprimir en la impresora térmica USB
+      try {
+        await imprimirEnTérmica(ticketData);
+        setSuccessMessage('✅ Impresión enviada a la térmica');
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
+      } catch (error) {
+        // Si falla la térmica, usar impresión del navegador
+        console.log('Usando impresión del navegador...');
+        imprimirViaBrowser(ticketData);
+      }
+    } catch (error) {
+      console.error('Error imprimiendo ticket:', error);
+      alert('Error al imprimir ticket');
     }
   };
 
@@ -517,23 +693,22 @@ export default function CajaPage() {
                     className="bg-gradient-to-br from-red-800/50 to-red-900/50 border-2 border-red-600/50 rounded-xl p-5 shadow-lg"
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-lg font-bold text-white">{mod.tipo === 'edicion' ? '✏️ Editar' : '🗑️ Eliminar'}</span>
+                      <span className="text-lg font-bold text-white">
+                        {mod.tipo === 'edicion' || mod.tipo === 'edicion_completa' ? '✏️ Editar' : '🗑️ Eliminar'}
+                      </span>
                       <AlertCircle className="w-5 h-5 text-red-400 animate-pulse" />
                     </div>
                     <p className="text-sm text-white/70 mb-2">Pedido: {mod.pedido_numero}</p>
                     <p className="text-sm text-white/70 mb-4">Cuenta: {mod.cuenta_numero}</p>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => handleModificacion(mod.id, true, 'Caja')}
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg font-bold transition-colors text-sm"
+                        onClick={() => {
+                          setModificacionSeleccionada(mod);
+                          setShowModificacionModal(true);
+                        }}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg font-bold transition-colors text-sm"
                       >
-                        ✅ Aprobar
-                      </button>
-                      <button
-                        onClick={() => handleModificacion(mod.id, false, 'Caja')}
-                        className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg font-bold transition-colors text-sm"
-                      >
-                        ❌ Rechazar
+                        👁️ Ver Detalles
                       </button>
                     </div>
                   </motion.div>
@@ -542,6 +717,21 @@ export default function CajaPage() {
             )
           )}
         </div>
+
+        {/* Modal de Modificación Detallada */}
+        {modificacionSeleccionada && (
+          <ModificacionDetalleModal
+            show={showModificacionModal}
+            onClose={() => {
+              setShowModificacionModal(false);
+              setModificacionSeleccionada(null);
+            }}
+            onApprove={handleAprobarModificacion}
+            onReject={handleRechazarModificacion}
+            modificacion={modificacionSeleccionada}
+            loading={procesandoModificacion}
+          />
+        )}
       </div>
     );
   }
@@ -647,6 +837,56 @@ export default function CajaPage() {
           </motion.div>
         </motion.div>
 
+        {/* Botones de acción */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          {/* Botón Imprimir Ticket */}
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={handleImprimirTicket}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 rounded-lg font-bold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-2xl"
+          >
+            <Printer className="w-5 h-5" />
+            Imprimir
+          </motion.button>
+
+          {/* Botón Cerrar Cuenta */}
+          {selectedCuenta.estado === ESTADOS.CUENTA.ABIERTA && (
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={async () => {
+                if (confirm('¿Cerrar esta cuenta?')) {
+                  try {
+                    const response = await fetch(API.CUENTA_BY_ID(selectedCuenta.id), {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        estado: ESTADOS.CUENTA.CERRADA
+                      })
+                    });
+                    if (response.ok) {
+                      setSuccessMessage('✅ Cuenta cerrada exitosamente');
+                      setShowSuccess(true);
+                      setTimeout(() => {
+                        setShowSuccess(false);
+                        setSelectedCuenta(null);
+                        fetchData();
+                      }, 2000);
+                    }
+                  } catch (error) {
+                    alert('Error al cerrar cuenta');
+                  }
+                }
+              }}
+              className="bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white py-3 rounded-lg font-bold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-2xl"
+            >
+              <CheckCircle className="w-5 h-5" />
+              Cerrar Cuenta
+            </motion.button>
+          )}
+        </div>
+
         {selectedCuenta.estado === ESTADOS.CUENTA.CERRADA && (
           <motion.button
             whileHover={{ scale: 1.03 }}
@@ -749,84 +989,20 @@ export default function CajaPage() {
           </>
         )}
       </AnimatePresence>
-
-      {/* Modal Editar Pedido */}
-      <AnimatePresence>
-        {showEditarModal && pedidoAEditar && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowEditarModal(false)}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
-            />
-            <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
-                onClick={e => e.stopPropagation()}
-                className="bg-slate-800 rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto"
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="text-white text-xl font-bold">✏️ Editar Pedido</h3>
-                    <p className="text-blue-300 text-sm">{pedidoAEditar.numero_pedido}</p>
-                  </div>
-                  <button
-                    onClick={() => setShowEditarModal(false)}
-                    className="p-2 hover:bg-white/20 rounded-full"
-                  >
-                    <X className="w-6 h-6 text-white" />
-                  </button>
-                </div>
-
-                <div className="space-y-4 mb-6">
-                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-                    <p className="text-yellow-400 text-sm">Se enviará una petición de edición que debe ser aprobada.</p>
-                  </div>
-
-                  <div>
-                    <h4 className="text-white font-semibold mb-3">Items actuales:</h4>
-                    {pedidoAEditar.items?.map((item, idx) => (
-                      <div key={idx} className="bg-slate-700/50 rounded-lg p-3 mb-2">
-                        <p className="text-white font-medium">
-                          <span className="text-blue-400 font-bold">{item.cantidad}x</span> {item.nombre}
-                        </p>
-                        <p className="text-green-400 font-semibold text-sm">
-                          ${(item.cantidad * item.precio_unitario).toFixed(2)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                    <p className="text-blue-300 text-sm">
-                      Total: <span className="text-green-400 text-lg font-bold">${(pedidoAEditar.total || 0).toFixed(2)}</span>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowEditarModal(false)}
-                    className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-medium transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleGuardarEdicion}
-                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-medium transition-colors"
-                  >
-                    Enviar Petición
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          </>
-        )}
-      </AnimatePresence>
+      {/* Modal Editar Pedido - Nuevo Sistema Robusto */}
+      {selectedCuenta && pedidoAEditar && (
+        <PedidoEditCompleteModal
+          show={showEditarModal}
+          onClose={() => {
+            setShowEditarModal(false);
+            setPedidoAEditar(null);
+          }}
+          onSave={handleGuardarEdicion}
+          pedido={pedidoAEditar}
+          cuenta={selectedCuenta}
+          loading={false}
+        />
+      )}
 
       {/* Success Message */}
       <AnimatePresence>
@@ -869,6 +1045,27 @@ export default function CajaPage() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Modal de Eliminación de Pedido */}
+      {selectedCuenta && pedidoAEliminar && (
+        <PedidoDeleteDetailModal
+          show={showDeleteModal}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setPedidoAEliminar(null);
+          }}
+          onConfirm={confirmarEliminarPedido}
+          pedido={pedidoAEliminar}
+          cuenta={selectedCuenta}
+          loading={eliminando}
+        />
+      )}
+
+      {/* Notificaciones */}
+      <NotificacionesStack
+        notificaciones={notificaciones}
+        onDismiss={dismissNotificacion}
+      />
     </div>
   );
 }

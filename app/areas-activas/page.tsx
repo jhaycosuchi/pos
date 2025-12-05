@@ -22,6 +22,8 @@ import {
   Shield
 } from 'lucide-react'
 import { API, PAGES, ROUTES, ESTADOS } from '@/lib/config'
+import PedidoEditCompleteModal from '@/components/caja/PedidoEditCompleteModal'
+import NotificacionesStack, { Notificacion } from '@/components/NotificacionesStack'
 
 interface CuentaActiva {
   id: number
@@ -81,6 +83,10 @@ export default function AreasActivasPage() {
   const [showEditarModal, setShowEditarModal] = useState(false)
   const [pedidoAEditar, setPedidoAEditar] = useState<PedidoCuenta | null>(null)
   const [editando, setEditando] = useState(false)
+  
+  // Notificaciones
+  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
+  const [ultimaCheckModificaciones, setUltimaCheckModificaciones] = useState<number>(0)
 
   useEffect(() => {
     const storedMesero = localStorage.getItem('pos_user')
@@ -97,6 +103,68 @@ export default function AreasActivasPage() {
     const interval = setInterval(fetchCuentas, 15000)
     return () => clearInterval(interval)
   }, [])
+
+  // Checkear modificaciones del mesero cada 5 segundos
+  useEffect(() => {
+    const checkModificaciones = async () => {
+      try {
+        const response = await fetch(`${API.MODIFICACIONES}?tipo=edicion_completa`)
+        if (response.ok) {
+          const modificaciones = await response.json() as any[]
+          
+          // Filtrar solo modificaciones que cambiaron de estado recientemente
+          const ahora = Date.now()
+          const modificacionesRecientes = modificaciones.filter(mod => {
+            if (!mod.fecha_autorizacion) return false // Solo aprobadas/rechazadas
+            const fecha = new Date(mod.fecha_autorizacion).getTime()
+            return ahora - fecha < 60000 // Últimos 60 segundos
+          })
+
+          // Mostrar notificaciones para cada modificación con estado cambio reciente
+          modificacionesRecientes.forEach(mod => {
+            if (mod.estado === 'aprobada' && mod.id > ultimaCheckModificaciones) {
+              const id = `notif-${mod.id}-aprobada`
+              if (!notificaciones.find(n => n.id === id)) {
+                addNotificacion({
+                  id,
+                  tipo: 'exito',
+                  titulo: '✅ Cambio Aprobado',
+                  mensaje: `Tu modificación en ${mod.pedido_numero} fue aprobada por caja`,
+                  duracion: 6000
+                })
+              }
+              setUltimaCheckModificaciones(Math.max(ultimaCheckModificaciones, mod.id))
+            } else if (mod.estado === 'rechazada' && mod.id > ultimaCheckModificaciones) {
+              const id = `notif-${mod.id}-rechazada`
+              if (!notificaciones.find(n => n.id === id)) {
+                addNotificacion({
+                  id,
+                  tipo: 'error',
+                  titulo: '❌ Cambio Rechazado',
+                  mensaje: `Tu modificación en ${mod.pedido_numero} fue rechazada. Revísala`,
+                  duracion: 6000
+                })
+              }
+              setUltimaCheckModificaciones(Math.max(ultimaCheckModificaciones, mod.id))
+            }
+          })
+        }
+      } catch (error) {
+        console.error('Error checking modificaciones:', error)
+      }
+    }
+
+    const interval = setInterval(checkModificaciones, 5000)
+    return () => clearInterval(interval)
+  }, [ultimaCheckModificaciones, notificaciones])
+
+  const addNotificacion = (notif: Notificacion) => {
+    setNotificaciones(prev => [...prev, notif])
+  }
+
+  const dismissNotificacion = (id: string) => {
+    setNotificaciones(prev => prev.filter(n => n.id !== id))
+  }
 
   const fetchCuentas = async () => {
     try {
@@ -208,6 +276,89 @@ export default function AreasActivasPage() {
     setShowEditarModal(true)
   }
 
+  const handleGuardarEdicion = async (editedData: any) => {
+    if (!pedidoAEditar || !selectedCuenta) return;
+
+    try {
+      // Detectar cambios en los items
+      const itemsAnteriores = pedidoAEditar.items || [];
+      const itemsNuevos = editedData.items || [];
+
+      // Crear detalle de cambios
+      const cambios = {
+        items_eliminados: itemsAnteriores.filter((item: any) => 
+          !itemsNuevos.find((nuevo: any) => nuevo.nombre === item.nombre && nuevo.cantidad === item.cantidad)
+        ),
+        items_modificados: itemsNuevos.filter((item: any) => {
+          const anterior = itemsAnteriores.find((a: any) => a.nombre === item.nombre);
+          return anterior && (
+            anterior.cantidad !== item.cantidad || 
+            anterior.precio_unitario !== item.precio_unitario ||
+            anterior.especificaciones !== item.especificaciones ||
+            anterior.notas !== item.notas
+          );
+        }).map((item: any) => ({
+          nombre: item.nombre,
+          anterior: itemsAnteriores.find((a: any) => a.nombre === item.nombre),
+          nuevo: item
+        })),
+        items_agregados: itemsNuevos.filter((item: any) =>
+          !itemsAnteriores.find((a: any) => a.nombre === item.nombre)
+        )
+      };
+
+      // Actualizar en BD
+      const response = await fetch(`${API.PEDIDOS}/${pedidoAEditar.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: editedData.items,
+          observaciones: editedData.observaciones
+        })
+      });
+
+      if (response.ok) {
+        // Crear modificación para caja - con detalles completos en cambios
+        const cambiosCompletos = {
+          ...cambios,
+          items_anteriores: itemsAnteriores,
+          items_nuevos: itemsNuevos
+        };
+
+        const modResponse = await fetch(API.MODIFICACIONES, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tipo: 'edicion_completa',
+            pedido_id: pedidoAEditar.id,
+            cuenta_id: selectedCuenta.id,
+            solicitado_por: 'mesero',
+            detalles: `Edición del pedido ${pedidoAEditar.numero_pedido}`,
+            cambios: JSON.stringify(cambiosCompletos)
+          })
+        });
+
+        // Refrescar datos
+        await fetchCuentas();
+        setShowEditarModal(false);
+        setPedidoAEditar(null);
+        
+        if (modResponse.ok) {
+          console.log('✅ Pedido actualizado y modificación enviada a caja');
+        } else {
+          const error = await modResponse.json();
+          console.error('⚠️ Modificación no registrada en caja:', error);
+        }
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.message || 'No se pudo actualizar el pedido'}`);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al actualizar el pedido');
+    }
+  }
+
   const handleEliminarPedido = async (pedido: PedidoCuenta) => {
     if (!confirm(`¿Estás seguro de que quieres solicitar la eliminación del pedido ${pedido.numero_pedido}?`)) {
       return
@@ -227,8 +378,9 @@ export default function AreasActivasPage() {
           tipo: 'eliminacion',
           pedido_id: pedido.id,
           cuenta_id: selectedCuenta.id,
-          solicitado_por: meseroNombre,
-          detalles: `Solicitud de eliminación del pedido ${pedido.numero_pedido}`
+          solicitado_por: 'mesero',
+          detalles: `Solicitud de eliminación del pedido ${pedido.numero_pedido}`,
+          cambios: JSON.stringify({ razon: 'Eliminación solicitada por mesero' })
         })
       })
 
@@ -244,44 +396,6 @@ export default function AreasActivasPage() {
     }
   }
 
-  const handleGuardarEdicion = async () => {
-    if (!pedidoAEditar) return
-
-    if (!selectedCuenta?.id) {
-      alert('Error: No hay cuenta seleccionada')
-      return
-    }
-
-    setEditando(true)
-    try {
-      // Crear petición de modificación pendiente de autorización
-      const response = await fetch(API.MODIFICACIONES, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo: 'edicion',
-          pedido_id: pedidoAEditar.id,
-          cuenta_id: selectedCuenta.id,
-          solicitado_por: meseroNombre,
-          detalles: `Solicitud de edición del pedido ${pedidoAEditar.numero_pedido}`,
-          cambios: 'Edición de items del pedido'
-        })
-      })
-
-      if (response.ok) {
-        alert('✅ Petición de edición enviada. Espera autorización de caja.')
-        setShowEditarModal(false)
-        setPedidoAEditar(null)
-      } else {
-        alert('Error al enviar la petición')
-      }
-    } catch (error) {
-      console.error('Error:', error)
-      alert('Error al procesar la petición')
-    } finally {
-      setEditando(false)
-    }
-  }
 
   const formatTime = (dateString: string) => {
     if (!dateString) return '--:--'
@@ -910,121 +1024,27 @@ export default function AreasActivasPage() {
 
       {/* Modal Editar Pedido */}
       <AnimatePresence>
-        {showEditarModal && pedidoAEditar && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowEditarModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={e => e.stopPropagation()}
-              className="bg-slate-800 rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
-                    <Edit className="w-6 h-6 text-blue-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-white text-xl font-bold">Editar Pedido</h3>
-                    <p className="text-blue-300 text-sm">{pedidoAEditar.numero_pedido}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowEditarModal(false)}
-                  className="p-2 hover:bg-white/20 rounded-full"
-                >
-                  <X className="w-6 h-6 text-white" />
-                </button>
-              </div>
-
-              <div className="space-y-4 mb-6">
-                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Shield className="w-5 h-5 text-yellow-400" />
-                    <span className="text-yellow-400 font-semibold">Autorización Requerida</span>
-                  </div>
-                  <p className="text-white/70 text-sm">
-                    Los cambios en pedidos existentes requieren autorización de caja.
-                    Se enviará una petición que debe ser aprobada antes de aplicar los cambios.
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="text-white font-semibold mb-3">Items actuales:</h4>
-                  {pedidoAEditar.items && pedidoAEditar.items.length > 0 ? (
-                    <div className="space-y-2">
-                      {pedidoAEditar.items.map((item, idx) => (
-                        <div key={idx} className="bg-slate-700/50 rounded-lg p-3">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <p className="text-white font-medium">
-                                <span className="text-blue-400 font-bold">{item.cantidad}x</span> {item.nombre}
-                              </p>
-                              {(item.notas || item.especificaciones) && (
-                                <p className="text-yellow-300 text-xs mt-1 italic">
-                                  📝 {item.notas || item.especificaciones}
-                                </p>
-                              )}
-                            </div>
-                            <span className="text-green-400 font-semibold ml-2">
-                              ${(item.cantidad * item.precio_unitario).toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-white/50 text-sm italic">Sin items</p>
-                  )}
-                </div>
-
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                  <h4 className="text-blue-300 font-semibold mb-2">¿Qué deseas hacer?</h4>
-                  <p className="text-white/70 text-sm mb-3">
-                    Selecciona la acción que quieres solicitar:
-                  </p>
-                  <div className="space-y-2">
-                    <button className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center gap-2">
-                      <Plus className="w-5 h-5" />
-                      Agregar items al pedido
-                    </button>
-                    <button className="w-full bg-orange-600 hover:bg-orange-500 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center gap-2">
-                      <Edit className="w-5 h-5" />
-                      Modificar cantidades/notas
-                    </button>
-                    <button className="w-full bg-red-600 hover:bg-red-500 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center gap-2">
-                      <Trash2 className="w-5 h-5" />
-                      Eliminar items del pedido
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowEditarModal(false)}
-                  className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-medium transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleGuardarEdicion}
-                  disabled={editando}
-                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-medium transition-colors disabled:opacity-50"
-                >
-                  {editando ? 'Enviando...' : 'Enviar Petición'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
+        {/* Modal Editar Pedido - Nuevo Sistema Robusto */}
+        {selectedCuenta && pedidoAEditar && (
+          <PedidoEditCompleteModal
+            show={showEditarModal}
+            onClose={() => {
+              setShowEditarModal(false)
+              setPedidoAEditar(null)
+            }}
+            onSave={handleGuardarEdicion}
+            pedido={pedidoAEditar}
+            cuenta={selectedCuenta as any}
+            loading={editando}
+          />
         )}
       </AnimatePresence>
+      
+      {/* Notificaciones */}
+      <NotificacionesStack 
+        notificaciones={notificaciones}
+        onDismiss={dismissNotificacion}
+      />
     </div>
   )
 }

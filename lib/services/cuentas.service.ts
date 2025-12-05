@@ -167,14 +167,28 @@ export class CuentasService extends BaseService {
         // Actualizar estado a cerrada
         this.db.prepare(`
           UPDATE cuentas 
-          SET estado = 'cerrada', fecha_cierre = datetime('now')
+          SET estado = 'cerrada'
           WHERE id = ?
         `).run(cuentaId);
 
         // Marcar pedidos como entregado
         this.db.prepare(`
-          UPDATE pedidos SET estado = 'entregado' WHERE cuenta_id = ?
+          UPDATE pedidos SET estado = 'entregado' WHERE cuenta_id = ? AND estado NOT IN ('entregado', 'completado')
         `).run(cuentaId);
+
+        // Marcar mesa como disponible si la cuenta tiene mesa_numero
+        if (cuenta.mesa_numero) {
+          try {
+            this.db.prepare(`
+              UPDATE mesas 
+              SET estado = 'disponible'
+              WHERE numero = ?
+            `).run(cuenta.mesa_numero);
+          } catch (err) {
+            // Tabla mesas puede no existir aún, continuar sin error
+            console.log('Tabla mesas no disponible, continuando...');
+          }
+        }
 
         return this.db.prepare('SELECT * FROM cuentas WHERE id = ?').get(cuentaId);
       },
@@ -218,6 +232,20 @@ export class CuentasService extends BaseService {
           WHERE id = ?
         `).run(metodo_pago, monto, cuentaId);
 
+        // Marcar mesa como disponible si la cuenta tiene mesa_numero
+        if (cuenta.mesa_numero) {
+          try {
+            this.db.prepare(`
+              UPDATE mesas 
+              SET estado = 'disponible'
+              WHERE numero = ?
+            `).run(cuenta.mesa_numero);
+          } catch (err) {
+            // Tabla mesas puede no existir aún, continuar sin error
+            console.log('Tabla mesas no disponible, continuando...');
+          }
+        }
+
         return this.db.prepare('SELECT * FROM cuentas WHERE id = ?').get(cuentaId);
       },
       'Error al cobrar cuenta'
@@ -240,10 +268,25 @@ export class CuentasService extends BaseService {
           throw new Error('Cuenta no encontrada');
         }
 
-        if (cuenta.estado !== 'abierta') {
-          throw new Error('Solo se pueden eliminar cuentas abiertas');
+        // Eliminar pedidos asociados primero
+        this.db.prepare('DELETE FROM detalle_pedidos WHERE pedido_id IN (SELECT id FROM pedidos WHERE cuenta_id = ?)').run(cuentaId);
+        this.db.prepare('DELETE FROM pedidos WHERE cuenta_id = ?').run(cuentaId);
+        
+        // Marcar mesa como disponible si la cuenta tiene mesa_numero
+        if (cuenta.mesa_numero) {
+          try {
+            this.db.prepare(`
+              UPDATE mesas 
+              SET estado = 'disponible'
+              WHERE numero = ?
+            `).run(cuenta.mesa_numero);
+          } catch (err) {
+            // Tabla mesas puede no existir aún, continuar sin error
+            console.log('Tabla mesas no disponible, continuando...');
+          }
         }
 
+        // Luego eliminar la cuenta
         this.db.prepare('DELETE FROM cuentas WHERE id = ?').run(cuentaId);
         return { id: cuentaId, eliminada: true };
       },

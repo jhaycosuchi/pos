@@ -3,7 +3,7 @@ import { ItemCheckbox } from './ItemCheckbox';
 import { CompletedItemsSection } from './CompletedItemsSection';
 import { ActionButton } from './ActionButton';
 import { NoItemsMessage } from './NoItemsMessage';
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 
 interface ComandaColumnProps {
   title: string;
@@ -24,7 +24,11 @@ interface ComandaColumnProps {
   getColorPorTiempo: (fecha: string) => string;
   getBorderColorPorTiempo: (fecha: string, baseColor: string) => string;
   getUrgencyClass: (fecha: string) => string;
+  getUrgencyBgClass: (fecha: string) => string;
+  getTimeTextClass: (fecha: string) => string;
+  formatearTiempo: (fecha: string) => string;
   calcularTiempoTranscurrido: (fecha: string) => string;
+  serverTime: Date;
   tiempoLimite: number;
   isPreparacion?: boolean;
   onViewPedido?: (pedido: any) => void;
@@ -49,11 +53,26 @@ export function ComandaColumn({
   getColorPorTiempo,
   getBorderColorPorTiempo,
   getUrgencyClass,
+  getUrgencyBgClass,
+  getTimeTextClass,
+  formatearTiempo,
   calcularTiempoTranscurrido,
+  serverTime,
   tiempoLimite,
   isPreparacion = false,
   onViewPedido
 }: ComandaColumnProps) {
+  const [, setTick] = useState(0);
+
+  // Forzar re-render cada segundo para actualizar el contador
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTick(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   const isItemCompletado = (pedidoId: number, itemIndex: number) => {
     return itemsCompletados.has(`${pedidoId}-${itemIndex}`);
   };
@@ -75,6 +94,11 @@ export function ComandaColumn({
       <div className="space-y-4 pb-4">
         {pedidos.length > 0 ? (
           pedidos.map(pedido => {
+            // Debug
+            if (pedido.observaciones) {
+              console.log(`Pedido ${pedido.numero_pedido} - Observaciones:`, pedido.observaciones);
+            }
+            
             const itemsActivos = isPreparacion
               ? pedido.items.filter((_: any, idx: number) => !isItemCompletado(pedido.id, idx))
               : pedido.items;
@@ -83,13 +107,14 @@ export function ComandaColumn({
               : 0;
             
             // Obtener colores dinámicos según el tiempo
-            const dynamicBorderColor = getBorderColorPorTiempo(pedido.creado_en, borderColor);
-            const urgencyClass = getUrgencyClass(pedido.creado_en);
+            const dynamicBgColor = getUrgencyBgClass(pedido.creado_en);
+            const timeTextClass = getTimeTextClass(pedido.creado_en);
+            const tiempoFormato = formatearTiempo(pedido.creado_en);
 
             return (
               <div 
                 key={pedido.id} 
-                className={`bg-white rounded-lg shadow-md border-l-4 p-5 hover:shadow-lg transition-all ${dynamicBorderColor} ${urgencyClass}`}
+                className={`rounded-xl border-2 shadow-lg p-5 hover:shadow-2xl transition-all ${dynamicBgColor}`}
               >
                 {/* Header del Pedido */}
                 <PedidoHeader
@@ -98,9 +123,10 @@ export function ComandaColumn({
                   numero_pedido={pedido.numero_pedido}
                   mesero_nombre={pedido.mesero_nombre}
                   total={pedido.total}
-                  tiempo={calcularTiempoTranscurrido(pedido.creado_en)}
+                  tiempo={tiempoFormato}
                   colorTiempo={getColorPorTiempo(pedido.creado_en)}
                   tiempoLimite={tiempoLimite}
+                  observaciones={pedido.observaciones || ''}
                 />
 
                 {/* Items */}

@@ -45,6 +45,7 @@ export const API = {
   
   // Auth
   AUTH: `${BASE_PATH}/api/auth`,
+  AUTH_ME: `${BASE_PATH}/api/auth/me`,
   
   // Caja
   CAJA: `${BASE_PATH}/api/caja`,

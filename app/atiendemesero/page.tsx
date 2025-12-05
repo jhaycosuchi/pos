@@ -23,6 +23,7 @@ import CartContent from '@/components/atiendemesero/CartContent';
 import ActiveAreasModal from '@/components/atiendemesero/ActiveAreasModal';
 
 interface MenuItem {
+  id?: number;
   nombre: string;
   descripcion: string;
   precio: number;
@@ -63,6 +64,8 @@ export default function AtiendemeseroPage() {
   const [showActiveAreas, setShowActiveAreas] = useState(false);
   const [continuePedidoId, setContinuePedidoId] = useState<number | null>(null);
   const [cuentaId, setCuentaId] = useState<number | null>(null);
+  const [meseroId, setMeseroId] = useState<number>(4); // Obtener desde API
+  const [observaciones, setObservaciones] = useState<string>(''); // Mensajes personalizados de la orden
   
   // Flow states
   const [step, setStep] = useState<'delivery-type' | 'menu'>('delivery-type');
@@ -124,64 +127,45 @@ export default function AtiendemeseroPage() {
   };
 
   useEffect(() => {
-    // Verificar parámetros de URL para cuenta existente
+    // Obtener cuenta desde URL parameter
     const cuentaParam = searchParams.get('cuenta');
     const tipoParam = searchParams.get('tipo');
     
     if (cuentaParam) {
-      setCuentaId(parseInt(cuentaParam));
+      const cuentaId = parseInt(cuentaParam);
+      setCuentaId(cuentaId);
       
-      // Leer datos de la mesa desde localStorage (guardados por areas-activas)
-      const mesaData = localStorage.getItem('mesa');
-      if (mesaData) {
+      // Obtener detalles de la cuenta desde API
+      const fetchCuentaData = async () => {
         try {
-          const mesa = JSON.parse(mesaData);
-          setTableNumber(mesa.numero.toString());
-          
-          if (tipoParam === 'para_llevar') {
-            setIsParaLlevar(true);
-          } else {
-            setIsParaLlevar(false);
+          const response = await fetch(`/pos/api/cuentas/${cuentaId}`);
+          if (response.ok) {
+            const result = await response.json();
+            const cuenta = result.data || result;
+            
+            // Usar mesa_numero de la cuenta
+            if (cuenta.mesa_numero) {
+              setTableNumber(cuenta.mesa_numero.toString());
+            }
+            
+            if (tipoParam === 'para_llevar') {
+              setIsParaLlevar(true);
+            } else {
+              setIsParaLlevar(false);
+            }
+            
+            console.log('Cuenta cargada desde API:', cuenta);
+            setStep('menu');
           }
-          
-          setStep('menu');
-        } catch (error: any) {
-          console.error('Error parsing mesa data:', error);
+        } catch (error) {
+          console.error('Error fetching cuenta data:', error);
         }
-      }
+      };
+      
+      fetchCuentaData();
     }
-    
-    // Verificar si viene de mesas (desde localStorage)
-    const selectedMesaData = localStorage.getItem('selectedMesa');
-    if (selectedMesaData) {
-      try {
-        const mesa = JSON.parse(selectedMesaData);
-        if (mesa && mesa.numero !== undefined) {
-          setIsParaLlevar(false);
-          setTableNumber(mesa.numero.toString());
-          // Cargar pedido existente si hay uno
-          loadExistingOrderForMesa(mesa.numero.toString());
-          setStep('menu');
-        }
-        localStorage.removeItem('selectedMesa'); // Limpiar después de usar
-      } catch (error: any) {
-        console.error('Error parsing selectedMesa:', error);
-      }
-    }
-
-    // Verificar si viene para crear un pedido para llevar desde una mesa
-    const paraLlevarDesdeMesaData = localStorage.getItem('paraLlevarDesdeMesa');
-    if (paraLlevarDesdeMesaData) {
-      try {
-        const mesa = JSON.parse(paraLlevarDesdeMesaData);
-        setIsParaLlevar(true);
-        setTableNumber(`P.Llevar-Mesa${mesa.numero}`); // ID único para pedidos para llevar desde mesas
-        setStep('menu');
-        localStorage.removeItem('paraLlevarDesdeMesa'); // Limpiar después de usar
-      } catch (error: any) {
-        console.error('Error parsing paraLlevarDesdeMesa:', error);
-      }
-    }
+    // IMPORTANT: NO setear step a 'menu' aquí si no hay cuentaParam
+    // El flujo debe mostrar InitialDeliveryOptions primero
 
     // Verificar si viene para continuar un pedido para llevar existente
     const continuePedidoData = localStorage.getItem('continuePedidoLlevar');
@@ -209,6 +193,24 @@ export default function AtiendemeseroPage() {
 
     // Escuchar eventos de InitialDeliveryOptions
     window.addEventListener('deliveryTypeSelected', handleDeliveryTypeEvent);
+    
+    // Obtener mesero actual desde API (no localStorage)
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch(`/pos/api/auth/me`)
+        if (response.ok) {
+          const result = await response.json()
+          const user = result.data || result
+          setMeseroId(user.id || 4)
+          console.log('Mesero cargado desde API:', user.nombre)
+        }
+      } catch (error) {
+        console.error('Error fetching current user:', error)
+        setMeseroId(4) // Fallback a ID 4
+      }
+    }
+    
+    fetchCurrentUser()
     fetchMenu();
 
     return () => {
@@ -299,10 +301,11 @@ export default function AtiendemeseroPage() {
         console.log('Agregando items a pedido existente:', continuePedidoId);
         
         const updateData = {
+          observaciones: observaciones.trim() || '',
           items: cart.map(item => {
             const notas = getNotasText(item.options);
             return {
-              menu_item_id: 1,
+              menu_item_id: item.item.id || null,
               producto_nombre: item.item.nombre,
               cantidad: item.quantity,
               precio_unitario: item.item.precio,
@@ -333,6 +336,7 @@ export default function AtiendemeseroPage() {
           setContinuePedidoId(null);
           setShowCart(false);
           setStep('delivery-type');
+          setObservaciones('');
           setTimeout(() => setShowSuccess(false), 3000);
         } else {
           const errorData = await response.json();
@@ -344,15 +348,16 @@ export default function AtiendemeseroPage() {
         console.log('Creando nuevo pedido');
         
         const orderData = {
-          mesero_id: AuthService.obtenerMeseroId(), // Obtener mesero dinámicamente
+          mesero_id: meseroId, // Usar mesero_id del estado (desde API)
           mesa_numero: tableNumber,
           comensales: 1,
           es_para_llevar: isParaLlevar,
           cuenta_id: cuentaId,
+          observaciones: observaciones.trim() || '',
           items: cart.map(item => {
             const notas = getNotasText(item.options);
             return {
-              menu_item_id: 1,
+              menu_item_id: item.item.id || null,
               producto_nombre: item.item.nombre,
               cantidad: item.quantity,
               precio_unitario: item.item.precio,
@@ -384,6 +389,7 @@ export default function AtiendemeseroPage() {
           setCuentaId(null);
           setShowCart(false);
           setStep('delivery-type');
+          setObservaciones('');
           setTimeout(() => setShowSuccess(false), 3000);
         } else {
           const errorData = await response.json();
@@ -554,6 +560,8 @@ export default function AtiendemeseroPage() {
             tableNumber={tableNumber}
             isParaLlevar={isParaLlevar}
             sending={sending}
+            observaciones={observaciones}
+            onObservacionesChange={setObservaciones}
             updateQuantity={updateQuantity}
             removeFromCart={removeFromCart}
             sendOrder={sendOrder}
@@ -614,6 +622,8 @@ export default function AtiendemeseroPage() {
                 tableNumber={tableNumber}
                 isParaLlevar={isParaLlevar}
                 sending={sending}
+                observaciones={observaciones}
+                onObservacionesChange={setObservaciones}
                 updateQuantity={updateQuantity}
                 removeFromCart={removeFromCart}
                 sendOrder={sendOrder}

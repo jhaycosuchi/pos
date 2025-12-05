@@ -29,6 +29,8 @@ interface CartContentProps {
   tableNumber: string;
   isParaLlevar: boolean;
   sending: boolean;
+  observaciones: string;
+  onObservacionesChange: (observaciones: string) => void;
   updateQuantity: (id: string, delta: number) => void;
   removeFromCart: (id: string) => void;
   sendOrder: () => void;
@@ -43,6 +45,8 @@ export default function CartContent({
   tableNumber,
   isParaLlevar,
   sending,
+  observaciones,
+  onObservacionesChange,
   updateQuantity,
   removeFromCart,
   sendOrder,
@@ -154,6 +158,19 @@ export default function CartContent({
             <span>Total</span>
             <span className="text-orange-400">${total.toFixed(2)}</span>
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-300">
+            📝 Instrucciones especiales (opcional)
+          </label>
+          <textarea
+            value={observaciones}
+            onChange={(e) => onObservacionesChange(e.target.value)}
+            placeholder="Ej: Sin picante, Extra salsa, Separar factura, etc."
+            className="w-full px-4 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm resize-none"
+            rows={3}
+          />
         </div>
 
         <button

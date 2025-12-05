@@ -5,25 +5,36 @@ import { getDb } from '../../lib/db';
 import {
   ClipboardList,
   DollarSign,
-  Tag,
-  ChefHat,
+  UtensilsCrossed,
   Users,
-  Utensils
+  ShoppingCart,
+  TrendingUp,
+  ArrowRight
 } from 'lucide-react';
 
 async function getDashboardStats() {
   const db = getDb();
 
   // Estadísticas básicas
-  const pedidosCount = db.prepare("SELECT COUNT(*) as count FROM pedidos WHERE date(creado_en) = date('now')").get();
-  const productosCount = db.prepare('SELECT COUNT(*) as count FROM menu_items WHERE disponible = 1').get();
-  const totalVentas = db.prepare("SELECT SUM(total) as total FROM pedidos WHERE date(creado_en) = date('now') AND estado = 'completado'").get();
+  const cuentasAbiertas = db.prepare("SELECT COUNT(*) as count FROM cuentas WHERE estado = 'ABIERTA'").get();
+  const pedidosHoy = db.prepare("SELECT COUNT(*) as count FROM pedidos WHERE date(creado_en) = date('now')").get();
+  const productosActivos = db.prepare('SELECT COUNT(*) as count FROM menu_items WHERE disponible = 1').get();
+  const ventasHoy = db.prepare("SELECT SUM(total) as total FROM pedidos WHERE date(creado_en) = date('now')").get();
 
   return {
-    pedidosHoy: pedidosCount?.count || 0,
-    productosActivos: productosCount?.count || 0,
-    ventasHoy: totalVentas?.total || 0,
+    cuentasAbiertas: cuentasAbiertas?.count || 0,
+    pedidosHoy: pedidosHoy?.count || 0,
+    productosActivos: productosActivos?.count || 0,
+    ventasHoy: ventasHoy?.total || 0,
   };
+}
+
+interface MenuItem {
+  href: string;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  color: string;
 }
 
 export default async function DashboardPage() {
@@ -31,7 +42,7 @@ export default async function DashboardPage() {
   const token = cookieStore.get('token')?.value;
 
   if (!token) {
-    return null; // El middleware debería redirigir
+    return null;
   }
 
   const user = verifyToken(token);
@@ -41,117 +52,140 @@ export default async function DashboardPage() {
 
   const stats = await getDashboardStats();
 
+  const menuItems: MenuItem[] = [
+    {
+      href: '/dashboard/cuentas',
+      icon: <ShoppingCart className="w-6 h-6" />,
+      title: 'Cuentas',
+      description: 'Gestiona todas las cuentas del restaurante',
+      color: 'bg-blue-50 border-blue-200 text-blue-700'
+    },
+    {
+      href: '/dashboard/pedidos',
+      icon: <ClipboardList className="w-6 h-6" />,
+      title: 'Pedidos',
+      description: 'Ver todos los pedidos del sistema',
+      color: 'bg-purple-50 border-purple-200 text-purple-700'
+    },
+    {
+      href: '/dashboard/menu',
+      icon: <UtensilsCrossed className="w-6 h-6" />,
+      title: 'Menú',
+      description: 'Administra productos y categorías',
+      color: 'bg-green-50 border-green-200 text-green-700'
+    },
+    {
+      href: '/dashboard/usuarios',
+      icon: <Users className="w-6 h-6" />,
+      title: 'Usuarios',
+      description: 'Gestiona usuarios y permisos',
+      color: 'bg-orange-50 border-orange-200 text-orange-700'
+    },
+    {
+      href: '/dashboard/caja',
+      icon: <DollarSign className="w-6 h-6" />,
+      title: 'Caja',
+      description: 'Control de caja y pagos',
+      color: 'bg-green-50 border-green-200 text-green-700'
+    },
+    {
+      href: '/dashboard/reportes',
+      icon: <TrendingUp className="w-6 h-6" />,
+      title: 'Reportes',
+      description: 'Análisis y reportes de ventas',
+      color: 'bg-red-50 border-red-200 text-red-700'
+    }
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-primary">Dashboard</h1>
-        <div className="text-sm text-gray-600">
-          {new Date().toLocaleDateString('es-ES', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })}
-        </div>
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-4xl font-bold text-gray-900">Dashboard Admin</h1>
+        <p className="text-gray-600 mt-2">Bienvenido, {user.nombre || 'Administrador'}</p>
       </div>
 
       {/* Estadísticas principales */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-secondary">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Cuentas Abiertas</p>
+              <p className="text-3xl font-bold text-blue-600 mt-2">{stats.cuentasAbiertas}</p>
+            </div>
+            <div className="bg-blue-100 p-3 rounded-lg">
+              <ShoppingCart className="w-6 h-6 text-blue-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Pedidos Hoy</p>
-              <p className="text-3xl font-bold text-primary">{stats.pedidosHoy}</p>
+              <p className="text-3xl font-bold text-purple-600 mt-2">{stats.pedidosHoy}</p>
             </div>
-            <ClipboardList className="h-12 w-12 text-secondary" />
+            <div className="bg-purple-100 p-3 rounded-lg">
+              <ClipboardList className="w-6 h-6 text-purple-600" />
+            </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-accent">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Productos Activos</p>
-              <p className="text-3xl font-bold text-primary">{stats.productosActivos}</p>
+              <p className="text-3xl font-bold text-green-600 mt-2">{stats.productosActivos}</p>
             </div>
-            <Utensils className="h-12 w-12 text-accent" />
+            <div className="bg-green-100 p-3 rounded-lg">
+              <UtensilsCrossed className="w-6 h-6 text-green-600" />
+            </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-success">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Ventas Hoy</p>
-              <p className="text-3xl font-bold text-primary">${stats.ventasHoy.toFixed(2)}</p>
+              <p className="text-3xl font-bold text-green-600 mt-2">${stats.ventasHoy?.toFixed(2) || '0.00'}</p>
             </div>
-            <DollarSign className="h-12 w-12 text-success" />
+            <div className="bg-green-100 p-3 rounded-lg">
+              <DollarSign className="w-6 h-6 text-green-600" />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Acciones rápidas */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4 text-primary">Acciones Rápidas</h2>
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-          <Link
-            href="/dashboard/pedidos/nuevo"
-            className="bg-secondary text-white p-4 rounded-lg hover:bg-blue-600 transition-colors text-center flex flex-col items-center justify-center space-y-2"
-          >
-            <ClipboardList className="h-6 w-6" />
-            <div className="font-medium">Nuevo Pedido</div>
-          </Link>
-
-          <Link
-            href="/dashboard/pedidos"
-            className="bg-primary text-white p-4 rounded-lg hover:bg-gray-800 transition-colors text-center flex flex-col items-center justify-center space-y-2"
-          >
-            <ClipboardList className="h-6 w-6" />
-            <div className="font-medium">Ver Pedidos</div>
-          </Link>
-
-          <Link
-            href="/dashboard/caja"
-            className="bg-accent text-white p-4 rounded-lg hover:bg-yellow-600 transition-colors text-center flex flex-col items-center justify-center space-y-2"
-          >
-            <DollarSign className="h-6 w-6" />
-            <div className="font-medium">Control Caja</div>
-          </Link>
-
-          <Link
-            href="/dashboard/menu"
-            className="bg-green-600 text-white p-4 rounded-lg hover:bg-green-700 transition-colors text-center flex flex-col items-center justify-center space-y-2"
-          >
-            <Utensils className="h-6 w-6" />
-            <div className="font-medium">Gestionar Menú</div>
-          </Link>
-
-          <Link
-            href="/dashboard/precios"
-            className="bg-success text-white p-4 rounded-lg hover:bg-green-600 transition-colors text-center flex flex-col items-center justify-center space-y-2"
-          >
-            <Tag className="h-6 w-6" />
-            <div className="font-medium">Gestionar Precios</div>
-          </Link>
-
-          <Link
-            href="/dashboard/meseros"
-            className="bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 transition-colors text-center flex flex-col items-center justify-center space-y-2"
-          >
-            <ChefHat className="h-6 w-6" />
-            <div className="font-medium">Gestionar Meseros</div>
-          </Link>
+      {/* Menú de navegación */}
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Acceso Rápido</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {menuItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`p-6 rounded-lg border ${item.color} hover:shadow-lg transition-all hover:scale-105 flex items-center justify-between group`}
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-white bg-opacity-50">
+                  {item.icon}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">{item.title}</h3>
+                  <p className="text-sm text-gray-600">{item.description}</p>
+                </div>
+              </div>
+              <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </Link>
+          ))}
         </div>
       </div>
 
-      {/* Pedidos recientes */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4 text-primary">Pedidos Recientes</h2>
-        <div className="text-center text-gray-500 py-8">
-          <ClipboardList className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <p>No hay pedidos recientes</p>
-          <Link href="/dashboard/pedidos/nuevo" className="btn-primary mt-4 inline-block">
-            Crear Primer Pedido
-          </Link>
-        </div>
+      {/* Footer info */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm text-blue-900">
+          <strong>Nota:</strong> Esta es la página de administración. Usa el menú para navegar a diferentes secciones.
+        </p>
       </div>
     </div>
   );
