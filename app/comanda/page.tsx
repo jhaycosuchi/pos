@@ -206,10 +206,18 @@ export default function ComandaPage() {
     return 'bg-red-50 animate-pulse';
   };
 
-  // Preparar datos por estado
-  const pedidosPendientes = pedidos.filter(p => p.estado === 'pendiente');
-  const pedidosPreparacion = pedidos.filter(p => p.estado === 'preparando');
-  const pedidosListos = pedidos.filter(p => p.estado === 'listo');
+  // Preparar datos por estado, ordenados de más viejo a más nuevo
+  const pedidosPendientes = pedidos
+    .filter(p => p.estado === 'pendiente')
+    .sort((a, b) => new Date(a.creado_en).getTime() - new Date(b.creado_en).getTime());
+  
+  const pedidosPreparacion = pedidos
+    .filter(p => p.estado === 'preparando')
+    .sort((a, b) => new Date(a.creado_en).getTime() - new Date(b.creado_en).getTime());
+  
+  const pedidosListos = pedidos
+    .filter(p => p.estado === 'listo')
+    .sort((a, b) => new Date(a.creado_en).getTime() - new Date(b.creado_en).getTime());
 
 
   if (loading) {

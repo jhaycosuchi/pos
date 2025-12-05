@@ -505,18 +505,18 @@ export default function AtiendemeseroPage() {
                 <span className="text-[10px] sm:text-xs text-gray-500">Cambiar</span>
               </button>
 
-              {/* Cart Button */}
-              <button 
-                onClick={() => setShowCart(true)}
-                className="xl:hidden relative bg-orange-500 hover:bg-orange-600 p-2.5 sm:p-3 md:p-3.5 rounded-xl transition-all hover:scale-105 shadow-lg"
-              >
-                <ShoppingCartIcon className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
-                {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] sm:text-xs font-bold w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center border-2 border-white">
-                    {itemCount}
-                  </span>
-                )}
-              </button>
+            {/* Cart Button - Header (Mobile) */}
+            <button 
+              onClick={() => setShowCart(true)}
+              className="xl:hidden relative bg-orange-500 hover:bg-orange-600 p-2.5 sm:p-3 md:p-3.5 rounded-xl transition-all hover:scale-105 shadow-lg"
+            >
+              <ShoppingCartIcon className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
+              {itemCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] sm:text-xs font-bold w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center border-2 border-white">
+                  {itemCount}
+                </span>
+              )}
+            </button>
             </div>
           </div>
 
@@ -543,78 +543,18 @@ export default function AtiendemeseroPage() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex">
-        <MenuGrid 
-          menuData={menuData}
-          activeCategory={activeCategory}
-          cart={cart}
-          onProductClick={handleProductClick}
-        />
-
-        {/* Desktop Cart Sidebar */}
-        <aside className="hidden xl:flex w-80 2xl:w-96 3xl:w-[28rem] bg-gray-800 border-l border-gray-700 flex-col shadow-2xl">
-          <CartContent 
+      <div className="flex-1 w-full overflow-hidden">
+        <div className="h-full w-full xl:flex xl:flex-row">
+          <MenuGrid 
+            menuData={menuData}
+            activeCategory={activeCategory}
             cart={cart}
-            total={total}
-            itemCount={itemCount}
-            tableNumber={tableNumber}
-            isParaLlevar={isParaLlevar}
-            sending={sending}
-            observaciones={observaciones}
-            onObservacionesChange={setObservaciones}
-            updateQuantity={updateQuantity}
-            removeFromCart={removeFromCart}
-            sendOrder={sendOrder}
-            getNotasText={getNotasText}
-            clearCart={() => setCart([])}
+            onProductClick={handleProductClick}
           />
-        </aside>
-      </div>
 
-      {/* Floating Cart Button */}
-      {itemCount > 0 && !showCart && (
-        <motion.button
-          initial={{ y: 100 }}
-          animate={{ y: 0 }}
-          onClick={() => setShowCart(true)}
-          className="xl:hidden fixed bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 md:bottom-8 md:left-8 md:right-8 bg-gradient-to-r from-orange-500 to-orange-600 text-white py-4 sm:py-5 md:py-6 px-6 sm:px-8 md:px-10 rounded-2xl sm:rounded-3xl shadow-2xl shadow-orange-500/30 flex items-center justify-between z-30 backdrop-blur-md border border-orange-400/30"
-        >
-          <div className="flex items-center gap-3 sm:gap-4">
-            <ShoppingCartIcon className="w-6 h-6 sm:w-7 sm:h-7" />
-            <span className="font-bold text-base sm:text-lg md:text-xl">{itemCount} items</span>
-          </div>
-          <span className="font-bold text-lg sm:text-xl md:text-2xl">${total.toFixed(2)}</span>
-        </motion.button>
-      )}
-
-      {/* Mobile Cart Drawer */}
-      <AnimatePresence>
-        {showCart && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowCart(false)}
-              className="xl:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-            />
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="xl:hidden fixed bottom-0 left-0 right-0 bg-gray-800 rounded-t-3xl z-50 max-h-[85vh] flex flex-col"
-            >
-              <div className="flex justify-center py-3">
-                <div className="w-12 h-1.5 bg-gray-600 rounded-full" />
-              </div>
-              <button
-                onClick={() => setShowCart(false)}
-                className="absolute top-4 right-4 p-2 bg-gray-700 hover:bg-gray-600 rounded-full"
-              >
-                <XMarkIcon className="w-5 h-5" />
-              </button>
-              
+          {/* Desktop Cart Sidebar - ABSOLUTELY HIDDEN on mobile, tablet, and laptop */}
+          <aside className="mobile-hide-cart hidden xl:block xl:w-80 2xl:w-96 3xl:w-[28rem] bg-gray-800 border-l border-gray-700 shadow-2xl flex-shrink-0">
+            <div className="h-full flex flex-col">
               <CartContent 
                 cart={cart}
                 total={total}
@@ -630,6 +570,53 @@ export default function AtiendemeseroPage() {
                 getNotasText={getNotasText}
                 clearCart={() => setCart([])}
               />
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      {/* Mobile Cart Modal - Opens when cart button is clicked */}
+      <AnimatePresence>
+        {showCart && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCart(false)}
+              className="fixed inset-0 bg-black/70 backdrop-blur-md z-40"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+            >
+              <div className="bg-gray-800 rounded-3xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden shadow-2xl pointer-events-auto">
+                <button
+                  onClick={() => setShowCart(false)}
+                  className="absolute top-4 right-4 p-2 bg-gray-700 hover:bg-gray-600 rounded-full z-10"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+                
+                <CartContent 
+                  cart={cart}
+                  total={total}
+                  itemCount={itemCount}
+                  tableNumber={tableNumber}
+                  isParaLlevar={isParaLlevar}
+                  sending={sending}
+                  observaciones={observaciones}
+                  onObservacionesChange={setObservaciones}
+                  updateQuantity={updateQuantity}
+                  removeFromCart={removeFromCart}
+                  sendOrder={sendOrder}
+                  getNotasText={getNotasText}
+                  clearCart={() => setCart([])}
+                />
+              </div>
             </motion.div>
           </>
         )}

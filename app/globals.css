@@ -36,4 +36,14 @@
   .animate-pulse-slow {
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
+  
+  /* Force hide cart sidebar on mobile */
+  @media (max-width: 1279px) {
+    .mobile-hide-cart {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+  }
 }
